@@ -1,6 +1,6 @@
 package game
 
-import "github.com/memmaker/battleground/engine/voxel"
+import "github.com/memmaker/voxeltactics/engine/voxel"
 
 // Posture is how low a unit holds itself. Getting lower makes a unit a smaller target and steadies its aim,
 // but it also lowers the eyes, so low walls block its view too.

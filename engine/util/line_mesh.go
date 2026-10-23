@@ -3,8 +3,8 @@ package util
 import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type LineMesh struct {

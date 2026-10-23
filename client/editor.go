@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 // RunEditor opens the map editor on a map (a saved map name or a generated "gen:<style>:<seed>")

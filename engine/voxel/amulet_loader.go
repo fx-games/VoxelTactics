@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/Tnze/go-mc/nbt"
-	"github.com/memmaker/battleground/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/afs"
 )
 
 /*

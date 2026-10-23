@@ -3,8 +3,8 @@ package game
 import (
     "fmt"
     "github.com/go-gl/mathgl/mgl32"
-    "github.com/memmaker/battleground/engine/util"
-    "github.com/memmaker/battleground/engine/voxel"
+    "github.com/memmaker/voxeltactics/engine/util"
+    "github.com/memmaker/voxeltactics/engine/voxel"
     "math"
 )
 

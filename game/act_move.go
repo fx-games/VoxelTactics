@@ -1,8 +1,8 @@
 package game
 
 import (
-	"github.com/memmaker/battleground/engine/path"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/path"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 	"slices"
 )
 

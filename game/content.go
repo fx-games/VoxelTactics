@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/memmaker/battleground/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/afs"
 )
 
 // MapEntry is a playable map as listed in the content files.

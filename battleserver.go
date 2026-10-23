@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/memmaker/battleground/server"
+	"github.com/memmaker/voxeltactics/server"
 )
 
 // NewBattleServer creates a server with the content from assets/content.

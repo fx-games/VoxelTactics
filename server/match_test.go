@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 func TestMain(m *testing.M) {

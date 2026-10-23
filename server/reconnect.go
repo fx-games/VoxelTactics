@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 // ReconnectGracePeriod is how long a dropped player's seat is kept before the opponent wins.

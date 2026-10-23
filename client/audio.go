@@ -9,8 +9,8 @@ import (
 
 	"github.com/ebitengine/oto/v3"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type SoundID int

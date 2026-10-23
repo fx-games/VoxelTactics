@@ -2,7 +2,7 @@ package game
 
 import (
 	"fmt"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type HumanoidAnimation string

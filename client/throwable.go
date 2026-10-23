@@ -2,8 +2,8 @@ package client
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/util"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/util"
 )
 
 type Throwable struct {

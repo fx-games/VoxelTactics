@@ -24,7 +24,7 @@ jobs:
 
       - name: Build Client
         run: go build -o bt_mac_client -tags client . && ls -lah
-        working-directory: /Users/runner/work/voxel-combat-revolved/voxel-combat-revolved
+        working-directory: /Users/runner/work/VoxelTactics/VoxelTactics
         env:
           CGO_ENABLED: 1
 
@@ -33,7 +33,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            /Users/runner/work/voxel-combat-revolved/voxel-combat-revolved/bt_mac_client
+            /Users/runner/work/VoxelTactics/VoxelTactics/bt_mac_client
 
   build-linux:
     needs: build-darwin
@@ -62,19 +62,19 @@ jobs:
 
       - name: Build Client
         run: CGOENABLED=1 go build -o bt_linux_client -tags client .
-        working-directory: /home/runner/work/voxel-combat-revolved/voxel-combat-revolved/
+        working-directory: /home/runner/work/VoxelTactics/VoxelTactics/
 
       - name: Build Server
         run: CGOENABLED=1 go build -o bt_linux_server -tags server .
-        working-directory: /home/runner/work/voxel-combat-revolved/voxel-combat-revolved/
+        working-directory: /home/runner/work/VoxelTactics/VoxelTactics/
 
       - name: Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            /home/runner/work/voxel-combat-revolved/voxel-combat-revolved/bt_linux_server
-            /home/runner/work/voxel-combat-revolved/voxel-combat-revolved/bt_linux_client
+            /home/runner/work/VoxelTactics/VoxelTactics/bt_linux_server
+            /home/runner/work/VoxelTactics/VoxelTactics/bt_linux_client
 
   build-windows:
     needs: build-darwin
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build Client
         run: go build -o windows_client.exe -tags client .
-        working-directory: D:\a\voxel-combat-revolved\voxel-combat-revolved
+        working-directory: D:\a\VoxelTactics\VoxelTactics
         env:
           CGO_ENABLED: 1
 
@@ -103,7 +103,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: D:\a\voxel-combat-revolved\voxel-combat-revolved\windows_client.exe
+          file: D:\a\VoxelTactics\VoxelTactics\windows_client.exe
           asset_name: bt_windows_client.exe
           tag: ${{ github.ref }}
           overwrite: true
@@ -113,4 +113,4 @@ jobs:
 #        if: startsWith(github.ref, 'refs/tags/')
 #        with:
 #          files: |
-#            D:\a\voxel-combat-revolved\voxel-combat-revolved\windows_client.exe
+#            D:\a\VoxelTactics\VoxelTactics\windows_client.exe

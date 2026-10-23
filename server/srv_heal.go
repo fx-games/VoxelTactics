@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/memmaker/battleground/engine/voxel"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type ServerActionHeal struct {

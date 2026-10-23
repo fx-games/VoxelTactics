@@ -3,9 +3,9 @@ package client
 import (
 	"fmt"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/memmaker/battleground/engine/gui"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/gui"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 func (a *BattleClient) UpdateActionbarFor(unit *Unit) {

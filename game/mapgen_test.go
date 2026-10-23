@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 func TestMain(m *testing.M) {

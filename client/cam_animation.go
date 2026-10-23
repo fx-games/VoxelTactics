@@ -1,6 +1,6 @@
 package client
 
-import "github.com/memmaker/battleground/engine/util"
+import "github.com/memmaker/voxeltactics/engine/util"
 
 // handleCameraTransition returns true if currently animating
 func (a *BattleClient) handleCameraTransition(elapsed float64) bool {

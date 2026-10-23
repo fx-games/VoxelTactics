@@ -1,8 +1,8 @@
 package game
 
 import (
-    "github.com/memmaker/battleground/engine/glhf"
-    "github.com/memmaker/battleground/engine/voxel"
+    "github.com/memmaker/voxeltactics/engine/glhf"
+    "github.com/memmaker/voxeltactics/engine/voxel"
     "github.com/ojrac/opensimplex-go"
 )
 

@@ -1,7 +1,7 @@
 package voxel
 
 import (
-	"github.com/memmaker/battleground/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/glhf"
 	"math"
 )
 

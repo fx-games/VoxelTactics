@@ -3,7 +3,7 @@ package game
 import (
 	"math"
 
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 const (

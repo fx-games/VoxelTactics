@@ -1,6 +1,6 @@
 package game
 
-import "github.com/memmaker/battleground/engine/voxel"
+import "github.com/memmaker/voxeltactics/engine/voxel"
 
 const (
 	HealAPCost = 2

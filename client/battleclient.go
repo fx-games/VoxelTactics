@@ -11,12 +11,12 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/afs"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/gui"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/gui"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	"github.com/memmaker/voxeltactics/game"
 	"github.com/solarlune/gocoro"
 )
 
@@ -150,7 +150,7 @@ func NewClientSettingsFromFile(filename string) ClientSettings {
 
 func DefaultClientSettings() ClientSettings {
 	return ClientSettings{
-		Title:                            "Block Tactics",
+		Title:                            "VoxelTactics",
 		Width:                            1280,
 		Height:                           720,
 		FPSCameraInvertedMouse:           true,

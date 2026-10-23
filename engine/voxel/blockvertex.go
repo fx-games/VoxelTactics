@@ -1,6 +1,6 @@
 package voxel
 
-import "github.com/memmaker/battleground/engine/glhf"
+import "github.com/memmaker/voxeltactics/engine/glhf"
 
 type FaceType int32
 

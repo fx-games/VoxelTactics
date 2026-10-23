@@ -3,8 +3,8 @@ package client
 import (
 	"fmt"
 
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type MatchOutcome int

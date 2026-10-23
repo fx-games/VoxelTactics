@@ -1,6 +1,6 @@
 package server
 
-import "github.com/memmaker/battleground/game"
+import "github.com/memmaker/voxeltactics/game"
 
 func (b *BattleServer) AddContent(content game.Content) {
 	for _, entry := range content.Maps {

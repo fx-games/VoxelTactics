@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/memmaker/battleground/engine/afs"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type MapMetadata struct {

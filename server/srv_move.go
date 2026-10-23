@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type ServerActionMove struct {

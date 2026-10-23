@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 func (a *BattleClient) updateDebugInfo() {

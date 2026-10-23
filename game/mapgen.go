@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 // GeneratedMapPrefix marks map names that are generated from a seed instead of loaded from a file,

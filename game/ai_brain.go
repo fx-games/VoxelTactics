@@ -8,8 +8,8 @@ import (
 	"sort"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 // AICommander is how an AIBrain issues its decisions. Each call must result in exactly one

@@ -1,4 +1,4 @@
-module github.com/memmaker/battleground
+module github.com/memmaker/voxeltactics
 
 go 1.21
 

@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 // autoPlayer lets the AI play the local player's side in the graphical client (BT_AUTOPLAY=1).

@@ -6,7 +6,7 @@ import (
 	"embed"
 	"io/fs"
 
-	"github.com/memmaker/battleground/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/afs"
 )
 
 // web/assets is staged by build_web.sh (a trimmed copy of ./assets).

@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/memmaker/battleground/engine/voxel"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 // ServerActionPosture makes a unit stand, crouch or go prone. It changes what the unit sees and how

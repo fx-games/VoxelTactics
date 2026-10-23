@@ -5,10 +5,10 @@ import (
 	"path"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/afs"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type Assets struct {

@@ -3,7 +3,7 @@ package server
 import (
 	"fmt"
 
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 // ServerActionReaction puts a unit into a defensive stance (dodge or brace) until its next turn.

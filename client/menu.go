@@ -12,9 +12,9 @@ import (
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type MatchMode int

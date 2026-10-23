@@ -12,10 +12,10 @@ import (
 
 	"github.com/faiface/mainthread"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/memmaker/battleground/client"
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
-	"github.com/memmaker/battleground/server"
+	"github.com/memmaker/voxeltactics/client"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
+	"github.com/memmaker/voxeltactics/server"
 )
 
 const hostPort = "9999"

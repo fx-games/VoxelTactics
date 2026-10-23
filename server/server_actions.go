@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type InvalidServerAction struct {

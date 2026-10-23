@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 	"log"
 	"os"
 	"runtime/pprof"

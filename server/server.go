@@ -10,8 +10,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/memmaker/battleground/engine/util"
-	"github.com/memmaker/battleground/game"
+	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxeltactics/game"
 )
 
 type BattleServer struct {
@@ -307,7 +307,7 @@ func (b *BattleServer) writeToClient(connection *UserConnection, messageType, re
 func (b *BattleServer) Login(con net.Conn, userID uint64, msg game.LoginMessage) {
 	userConnection := &UserConnection{raw: con, id: userID, name: msg.Username}
 	b.connectedClients[userID] = userConnection
-	b.respond(userConnection, "LoginResponse", game.ActionResponse{Success: true, Message: "Welcome to BattleGrounds"})
+	b.respond(userConnection, "LoginResponse", game.ActionResponse{Success: true, Message: "Welcome to VoxelTactics"})
 }
 
 func (b *BattleServer) SelectFaction(userID uint64, msg game.SelectFactionMessage) {

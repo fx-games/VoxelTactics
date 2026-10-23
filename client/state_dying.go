@@ -1,6 +1,6 @@
 package client
 
-import "github.com/memmaker/battleground/game"
+import "github.com/memmaker/voxeltactics/game"
 
 type ActorDyingBehavior struct {
 	actor *Unit

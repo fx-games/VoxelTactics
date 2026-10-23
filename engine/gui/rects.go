@@ -2,7 +2,7 @@ package gui
 
 import (
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/glhf"
 )
 
 // RectBatch draws solid colored screen-space rectangles in a single draw call.

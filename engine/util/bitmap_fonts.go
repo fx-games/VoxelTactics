@@ -13,8 +13,8 @@ import (
 	"strings"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/battleground/engine/afs"
-	"github.com/memmaker/battleground/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/glhf"
 )
 
 type BitmapFontMesh struct {

@@ -7,9 +7,9 @@ import (
 	"path"
 	"sort"
 
-	"github.com/memmaker/battleground/engine/afs"
-	"github.com/memmaker/battleground/engine/glhf"
-	"github.com/memmaker/battleground/engine/voxel"
+	"github.com/memmaker/voxeltactics/engine/afs"
+	"github.com/memmaker/voxeltactics/engine/glhf"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 	_ "github.com/spakin/netpbm"
 )
 
