@@ -207,7 +207,7 @@ func decodeBlocks[T int | byte](blocks []T, shapeX uint8, shapeY uint8, shapeZ u
 
 	*/
 	result := make([]*BlockDefinition, len(blocks))
-	for i := 0; i < len(blocks)-1; i++ {
+	for i := range blocks {
 		block := blocks[i]
 		blockDefinition := palette[block]
 		result[i] = blockDefinition

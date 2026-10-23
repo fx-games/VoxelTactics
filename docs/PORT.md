@@ -20,7 +20,7 @@ rebuilt in steps 5-7 and does not build in between.
 ## Steps
 - [x] 1. World: `engine/voxel.Map` wraps a VoxelLib `voxel.World` (bounds, occupants);
       chunk storage, greedy mesher, game lighting and GL code go.
-- [ ] 2. Maps: convert `map.bin` (and re-add it to server TestAIMatchFinishes), `test-map.bin` and the `.construction` imports
+- [x] 2. Maps: convert `map.bin`, `test-map.bin` and the `.construction` imports
       (keeping block properties) to region worlds; editor saves regions.
 - [ ] 3. Movement: `nav.Reach`/`nav.Graph` replace `engine/path` and
       `GetNeighborsForGroundMovement`; footprint and occupancy via `Passable`.
