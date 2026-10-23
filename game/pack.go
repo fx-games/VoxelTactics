@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	lv "github.com/memmaker/voxellib/voxel"
-	"github.com/memmaker/voxellib/voxel/mcres"
+	"github.com/memmaker/voxellib/voxel/respack"
 )
 
 // BasePackPath is the pack that gives blocks their shapes: $VT_BASE_PACK, else
@@ -68,14 +68,14 @@ func SharedRegistry() *lv.Registry {
 // NewRegistry makes the block registry the server and client share. With a
 // base pack, unknown blocks get its shapes; the returned pack (nil without
 // one) must stay open while the registry resolves blocks.
-func NewRegistry() (*lv.Registry, *mcres.Pack) {
+func NewRegistry() (*lv.Registry, *respack.Pack) {
 	reg := lv.NewRegistry()
 	p := BasePackPath()
 	if p == "" {
 		println("[Blocks] No base pack found (set VT_BASE_PACK): unknown blocks are plain cubes")
 		return reg, nil
 	}
-	pack, err := mcres.Open(p)
+	pack, err := respack.Open(p)
 	if err != nil {
 		println("[Blocks] Base pack: " + err.Error())
 		return reg, nil
