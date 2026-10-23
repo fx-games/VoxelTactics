@@ -44,7 +44,7 @@ func NewCrosshair(shader *glhf.Shader, cam *util.FPSCamera) *Crosshair {
 		originalScale:     scale,
 		originalThickness: 0.02,
 		currentThickness:  0.02,
-		color: game.ColorTechTeal,
+		color:             game.ColorTechTeal,
 		size:              1.0,
 	}
 	c.Init(shader)

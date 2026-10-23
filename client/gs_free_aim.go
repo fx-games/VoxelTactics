@@ -121,7 +121,6 @@ func (g *GameStateFreeAim) showTargetInfo(targetUnit *game.UnitInstance, zone ut
 
 	//description += fmt.Sprintf("\nHit Coverage: %0.2f", hitCoverage)
 
-
 	g.engine.Print(description)
 }
 func (g *GameStateFreeAim) Init(bool) {

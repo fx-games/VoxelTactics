@@ -150,7 +150,7 @@ type LineDrawer struct {
 func NewLineDrawer(shader *glhf.Shader) *LineDrawer {
 	return &LineDrawer{
 		shader: shader,
-		color: game.ColorTechTeal,
+		color:  game.ColorTechTeal,
 	}
 }
 

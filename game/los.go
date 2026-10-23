@@ -265,29 +265,29 @@ func (g *GameInstance) RayCastToPos(rayStart mgl32.Vec3, targetBlockPos voxel.In
 	return &RayCastHit{HitInfo3D: hitInfo, VisitedBlocks: visitedBlocks, UnitHit: unitHit, InsideMap: insideMap}
 }
 func (g *GameInstance) RayCastHitUnit(rayStart, rayEnd mgl32.Vec3, sourceUnit, targetUnit *UnitInstance) bool {
-    rayHitTargetUnit := false
-    util.DDARaycast(rayStart, rayEnd, func(x, y, z int32) bool {
-        if g.voxelMap.IsSolidBlockAt(x, y, z) || !g.voxelMap.Contains(x, y, z) {
-            return true
-        }
-        if occupant := g.voxelMap.GetMapObjectAt(voxel.Int3{X: x, Y: y, Z: z}); occupant != nil {
-            collidingObject := occupant.(*UnitInstance)
-            if collidingObject == sourceUnit {
-                return false
-            }
-            for _, meshPartCollider := range collidingObject.GetColliders() {
-                rayhitUnit, _ := meshPartCollider.IntersectsRay(rayStart, rayEnd) // why don't we hit the weapon on the server side?
-                if rayhitUnit {
-                    if collidingObject == targetUnit {
-                        rayHitTargetUnit = true
-                    }
-                    return true
-                }
-            }
-        }
-        return false
-    })
-    return rayHitTargetUnit
+	rayHitTargetUnit := false
+	util.DDARaycast(rayStart, rayEnd, func(x, y, z int32) bool {
+		if g.voxelMap.IsSolidBlockAt(x, y, z) || !g.voxelMap.Contains(x, y, z) {
+			return true
+		}
+		if occupant := g.voxelMap.GetMapObjectAt(voxel.Int3{X: x, Y: y, Z: z}); occupant != nil {
+			collidingObject := occupant.(*UnitInstance)
+			if collidingObject == sourceUnit {
+				return false
+			}
+			for _, meshPartCollider := range collidingObject.GetColliders() {
+				rayhitUnit, _ := meshPartCollider.IntersectsRay(rayStart, rayEnd) // why don't we hit the weapon on the server side?
+				if rayhitUnit {
+					if collidingObject == targetUnit {
+						rayHitTargetUnit = true
+					}
+					return true
+				}
+			}
+		}
+		return false
+	})
+	return rayHitTargetUnit
 }
 func (g *GameInstance) RayCastFreeAim(rayStart, rayEnd mgl32.Vec3, sourceUnit *UnitInstance) FreeAimHit {
 	rayHitObject := false

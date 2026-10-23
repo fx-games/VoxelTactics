@@ -218,11 +218,11 @@ type MapObject interface {
 
 // PositionToGridInt3 converts a Vec3 to a Int3 by flooring the values.
 func PositionToGridInt3(pos mgl32.Vec3) Int3 {
-	return Int3{int32(math.Floor(float64(pos.X()))), int32(math.Floor(float64(pos.Y()))), int32(math.Floor(float64(pos.Z())))}
+	return Int3{X: int32(math.Floor(float64(pos.X()))), Y: int32(math.Floor(float64(pos.Y()))), Z: int32(math.Floor(float64(pos.Z())))}
 }
 
 func DirectionToGridInt3(dir mgl32.Vec3) Int3 {
-	return Int3{int32(math.Round(float64(dir.X()))), int32(math.Round(float64(dir.Y()))), int32(math.Round(float64(dir.Z())))}
+	return Int3{X: int32(math.Round(float64(dir.X()))), Y: int32(math.Round(float64(dir.Y()))), Z: int32(math.Round(float64(dir.Z())))}
 }
 
 func (m *Map) IsUnitPlaceable(unit MapObject, blockPos Int3) (bool, string) {
@@ -289,7 +289,7 @@ func (m *Map) GetBlockedCardinalNeighborsUpToHeight(unitID uint64, position Int3
 	for _, offset := range cardinalNeighbors {
 		neighbor := position.Add(offset)
 		for y := int32(0); y < height; y++ {
-			if m.IsSolidBlockAt(neighbor.X, neighbor.Y+y, neighbor.Z) || m.IsOccupiedExcept(neighbor.Add(Int3{0, y, 0}), unitID) {
+			if m.IsSolidBlockAt(neighbor.X, neighbor.Y+y, neighbor.Z) || m.IsOccupiedExcept(neighbor.Add(Int3{X: 0, Y: y, Z: 0}), unitID) {
 				neighbors = append(neighbors, neighbor)
 				break
 			}
@@ -324,8 +324,8 @@ func (m *Map) GetNeighborsForGroundMovement(block Int3, keepPredicate func(neigh
 
 func (m *Map) GetGroundPosition(startBlock Int3) Int3 {
 	for y := startBlock.Y; y >= 1; y-- {
-		if m.IsSolidBlockAt(startBlock.X, y-1, startBlock.Z) || !m.ContainsGrid(Int3{startBlock.X, y - 1, startBlock.Z}) {
-			return Int3{startBlock.X, y, startBlock.Z}
+		if m.IsSolidBlockAt(startBlock.X, y-1, startBlock.Z) || !m.ContainsGrid(Int3{X: startBlock.X, Y: y - 1, Z: startBlock.Z}) {
+			return Int3{X: startBlock.X, Y: y, Z: startBlock.Z}
 		}
 	}
 	return startBlock

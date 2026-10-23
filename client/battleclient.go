@@ -1,10 +1,10 @@
 package client
 
 import (
-	"math/rand"
-	"os"
 	"fmt"
 	"math"
+	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -296,7 +296,7 @@ func NewBattleGame(window *glfw.Window, con *game.ServerConnection, initInfos ga
 	myApp.ui = NewUI(myApp.guiShader, fontTextureAtlas, atlasIndex.GetMapper(), 8, 14)
 	myApp.autoPlayer = newAutoPlayerFromEnv(myApp)
 	myApp.unitLightColor = mgl32.Vec3{0.4, 0.4, 0.4} // matches the default shader's light color
-	if os.Getenv("BT_OVERLAY") == "help" { // development aid for screenshots
+	if os.Getenv("BT_OVERLAY") == "help" {           // development aid for screenshots
 		myApp.overlay = overlayHelp
 	}
 	myApp.audio = GetAudio()

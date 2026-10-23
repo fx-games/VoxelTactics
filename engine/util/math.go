@@ -81,24 +81,24 @@ func LerpQuat(one, two [4]float32, factor float64) [4]float32 {
 }
 
 /*
-	float phi = (1 + Mathf.Sqrt(5)) / 2;//golden ratio
-    float angle_stride = 360 * phi;
-    float radius(float k, float n, float b)
-    {
-        return k > n - b ? 1 : Mathf.Sqrt(k - 0.5f) / Mathf.Sqrt(n - (b + 1) / 2);
-    }
+		float phi = (1 + Mathf.Sqrt(5)) / 2;//golden ratio
+	    float angle_stride = 360 * phi;
+	    float radius(float k, float n, float b)
+	    {
+	        return k > n - b ? 1 : Mathf.Sqrt(k - 0.5f) / Mathf.Sqrt(n - (b + 1) / 2);
+	    }
 
-    int b = (int)(alpha * Mathf.Sqrt(n));  //# number of boundary points
+	    int b = (int)(alpha * Mathf.Sqrt(n));  //# number of boundary points
 
-    List<Vector2>points = new List<Vector2>();
-    for (int k = 0; k < n; k++)
-    {
-        float r = radius(k, n, b);
-        float theta = geodesic ? k * 360 * phi : k * angle_stride;
-        float x = !float.IsNaN(r * Mathf.Cos(theta)) ? r * Mathf.Cos(theta) : 0;
-        float y = !float.IsNaN(r * Mathf.Sin(theta)) ? r * Mathf.Sin(theta) : 0;
-        points.Add(new Vector2(x, y));
-    }
+	    List<Vector2>points = new List<Vector2>();
+	    for (int k = 0; k < n; k++)
+	    {
+	        float r = radius(k, n, b);
+	        float theta = geodesic ? k * 360 * phi : k * angle_stride;
+	        float x = !float.IsNaN(r * Mathf.Cos(theta)) ? r * Mathf.Cos(theta) : 0;
+	        float y = !float.IsNaN(r * Mathf.Sin(theta)) ? r * Mathf.Sin(theta) : 0;
+	        points.Add(new Vector2(x, y));
+	    }
 */
 func SunflowerSeeds(n int, alpha float64) []mgl32.Vec2 {
 	phi := (1 + math.Sqrt(5)) / 2

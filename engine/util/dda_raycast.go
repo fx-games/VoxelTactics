@@ -247,28 +247,28 @@ func DDARaycast(rayStart, rayEnd mgl32.Vec3, stopRay func(x, y, z int32) bool) H
 			if steppedIndex == 0 {
 				if stepx > 0 {
 					side = Left
-					previousGridPosition = voxel.Int3{ix - 1, iy, iz}
+					previousGridPosition = voxel.Int3{X: ix - 1, Y: iy, Z: iz}
 				} else {
 					side = Right
-					previousGridPosition = voxel.Int3{ix + 1, iy, iz}
+					previousGridPosition = voxel.Int3{X: ix + 1, Y: iy, Z: iz}
 				}
 			}
 			if steppedIndex == 1 {
 				if stepy > 0 {
 					side = Bottom
-					previousGridPosition = voxel.Int3{ix, iy - 1, iz}
+					previousGridPosition = voxel.Int3{X: ix, Y: iy - 1, Z: iz}
 				} else {
 					side = Top
-					previousGridPosition = voxel.Int3{ix, iy + 1, iz}
+					previousGridPosition = voxel.Int3{X: ix, Y: iy + 1, Z: iz}
 				}
 			}
 			if steppedIndex == 2 {
 				if stepz > 0 {
 					side = Back
-					previousGridPosition = voxel.Int3{ix, iy, iz - 1}
+					previousGridPosition = voxel.Int3{X: ix, Y: iy, Z: iz - 1}
 				} else {
 					side = Front
-					previousGridPosition = voxel.Int3{ix, iy, iz + 1}
+					previousGridPosition = voxel.Int3{X: ix, Y: iy, Z: iz + 1}
 				}
 			}
 

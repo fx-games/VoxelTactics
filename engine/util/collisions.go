@@ -115,7 +115,7 @@ func (c *CollisionSolver) updateProjectiles(deltaTime float64) {
 			if c.isSolid(int32(x), int32(y), int32(z)) {
 				return true
 			}
-			gridCell = voxel.Int3{x, y, z}.Div(2)
+			gridCell = voxel.Int3{X: x, Y: y, Z: z}.Div(2)
 			if objectsInCell, ok := c.objectsOnGrid[gridCell]; (firstGridCell || lastGridCell != gridCell) && ok && len(objectsInCell) > 0 {
 				//isColliding, _, collisions := c.DoAABBNarrowPhase(deltaTime, obj, objectsInCell, collidingObjects) // WONT WORK FOR PROJECTILES
 				//println(fmt.Sprintf("Checking %s against %d objects in cell %v", obj.GetName(), len(objectsInCell), gridCell))
@@ -209,16 +209,16 @@ func (c *CollisionSolver) addToGrid(atPos mgl32.Vec3, obj CollidingObject) {
 	extents := obj.GetExtents()
 
 	// top face corners (ttl, ttr, tbl, tbr)
-	ttl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	ttr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	tbl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
-	tbr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
+	ttl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	ttr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	tbl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
+	tbr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
 
 	// bottom face corners (btl, btr, bbl, bbr)
-	btl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	btr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	bbl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
-	bbr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
+	btl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	btr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	bbl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
+	bbr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
 
 	if c.objectsOnGrid[ttl] == nil {
 		c.objectsOnGrid[ttl] = make(map[CollidingObject]bool)
@@ -259,16 +259,16 @@ func (c *CollisionSolver) removeFromGrid(atPos mgl32.Vec3, obj CollidingObject) 
 	extents := obj.GetExtents()
 
 	// top face corners (ttl, ttr, tbl, tbr)
-	ttl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	ttr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	tbl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
-	tbr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() + extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
+	ttl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	ttr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	tbl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
+	tbr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() + extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
 
 	// bottom face corners (btl, btr, bbl, bbr)
-	btl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	btr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() - extents.Z())}.Div(2)
-	bbl := voxel.Int3{int32(atPos.X() - extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
-	bbr := voxel.Int3{int32(atPos.X() + extents.X()), int32(atPos.Y() - extents.Y()), int32(atPos.Z() + extents.Z())}.Div(2)
+	btl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	btr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() - extents.Z())}.Div(2)
+	bbl := voxel.Int3{X: int32(atPos.X() - extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
+	bbr := voxel.Int3{X: int32(atPos.X() + extents.X()), Y: int32(atPos.Y() - extents.Y()), Z: int32(atPos.Z() + extents.Z())}.Div(2)
 
 	delete(c.objectsOnGrid[ttl], obj)
 	delete(c.objectsOnGrid[ttr], obj)
@@ -284,16 +284,16 @@ func (c *CollisionSolver) getGridObjectsNear(pos mgl32.Vec3, collidingObject Col
 
 	extents := collidingObject.GetExtents()
 	// top face corners (ttl, ttr, tbl, tbr)
-	ttl := voxel.Int3{int32(pos.X() - extents.X()), int32(pos.Y() + extents.Y()), int32(pos.Z() - extents.Z())}.Div(2)
-	ttr := voxel.Int3{int32(pos.X() + extents.X()), int32(pos.Y() + extents.Y()), int32(pos.Z() - extents.Z())}.Div(2)
-	tbl := voxel.Int3{int32(pos.X() - extents.X()), int32(pos.Y() + extents.Y()), int32(pos.Z() + extents.Z())}.Div(2)
-	tbr := voxel.Int3{int32(pos.X() + extents.X()), int32(pos.Y() + extents.Y()), int32(pos.Z() + extents.Z())}.Div(2)
+	ttl := voxel.Int3{X: int32(pos.X() - extents.X()), Y: int32(pos.Y() + extents.Y()), Z: int32(pos.Z() - extents.Z())}.Div(2)
+	ttr := voxel.Int3{X: int32(pos.X() + extents.X()), Y: int32(pos.Y() + extents.Y()), Z: int32(pos.Z() - extents.Z())}.Div(2)
+	tbl := voxel.Int3{X: int32(pos.X() - extents.X()), Y: int32(pos.Y() + extents.Y()), Z: int32(pos.Z() + extents.Z())}.Div(2)
+	tbr := voxel.Int3{X: int32(pos.X() + extents.X()), Y: int32(pos.Y() + extents.Y()), Z: int32(pos.Z() + extents.Z())}.Div(2)
 
 	// bottom face corners (btl, btr, bbl, bbr)
-	btl := voxel.Int3{int32(pos.X() - extents.X()), int32(pos.Y() - extents.Y()), int32(pos.Z() - extents.Z())}.Div(2)
-	btr := voxel.Int3{int32(pos.X() + extents.X()), int32(pos.Y() - extents.Y()), int32(pos.Z() - extents.Z())}.Div(2)
-	bbl := voxel.Int3{int32(pos.X() - extents.X()), int32(pos.Y() - extents.Y()), int32(pos.Z() + extents.Z())}.Div(2)
-	bbr := voxel.Int3{int32(pos.X() + extents.X()), int32(pos.Y() - extents.Y()), int32(pos.Z() + extents.Z())}.Div(2)
+	btl := voxel.Int3{X: int32(pos.X() - extents.X()), Y: int32(pos.Y() - extents.Y()), Z: int32(pos.Z() - extents.Z())}.Div(2)
+	btr := voxel.Int3{X: int32(pos.X() + extents.X()), Y: int32(pos.Y() - extents.Y()), Z: int32(pos.Z() - extents.Z())}.Div(2)
+	bbl := voxel.Int3{X: int32(pos.X() - extents.X()), Y: int32(pos.Y() - extents.Y()), Z: int32(pos.Z() + extents.Z())}.Div(2)
+	bbr := voxel.Int3{X: int32(pos.X() + extents.X()), Y: int32(pos.Y() - extents.Y()), Z: int32(pos.Z() + extents.Z())}.Div(2)
 
 	objects := make(map[CollidingObject]bool)
 	for obj := range c.objectsOnGrid[ttl] {

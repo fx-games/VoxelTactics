@@ -7,10 +7,10 @@ import (
 type WeaponType string
 
 const (
-	WeaponAutomatic WeaponType = "Automatic"
-	WeaponShotgun   WeaponType = "Shotgun"
-	WeaponSniper    WeaponType = "Sniper"
-	WeaponPistol    WeaponType = "Pistol"
+	WeaponAutomatic      WeaponType = "Automatic"
+	WeaponShotgun        WeaponType = "Shotgun"
+	WeaponSniper         WeaponType = "Sniper"
+	WeaponPistol         WeaponType = "Pistol"
 	WeaponRocketLauncher WeaponType = "Rocket Launcher"
 )
 

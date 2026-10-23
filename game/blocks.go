@@ -3,8 +3,8 @@ package game
 import (
 	"sort"
 
-	"github.com/memmaker/voxeltactics/engine/voxel"
 	lv "github.com/memmaker/voxellib/voxel"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 // BlockDefinition is what the game rules add to a block: how it reacts to hits.

@@ -144,7 +144,6 @@ func InitOpenGLWindow(title string, width, height int, fullScreen bool) (*glfw.W
 	if glErr != nil {
 		println("glfw: ", glErr.Error())
 		panic(glErr)
-		return nil, nil
 	}
 	glfw.WindowHint(glfw.ContextVersionMajor, 4)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)

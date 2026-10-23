@@ -1,12 +1,12 @@
 package server
 
 import (
-	"math/rand"
 	"fmt"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/memmaker/voxeltactics/engine/util"
 	"github.com/memmaker/voxeltactics/engine/voxel"
 	"github.com/memmaker/voxeltactics/game"
+	"math/rand"
 )
 
 type ServerActionShot struct {
@@ -157,14 +157,14 @@ func (a *ServerActionShot) Execute(mb *game.MessageBuffer) {
 		AmmoCost:          ammoCost,
 		Attacker:          a.unit.UnitID(),
 		APCostForAttacker: costOfAPForShot,
-		AimDirection: voxel.DirectionToGridInt3(lastAimDir),
+		AimDirection:      voxel.DirectionToGridInt3(lastAimDir),
 		IsTurnEnding:      a.IsTurnEnding(),
 	})
 }
 
 func (a *ServerActionShot) simulateOneProjectile() game.VisualProjectile {
 	projectileBaseDamage := a.unit.Weapon.Definition.BaseDamagePerBullet
-    effectInsteadOfDamage := a.unit.Weapon.Definition.InsteadOfDamage != game.TargetedEffectNone
+	effectInsteadOfDamage := a.unit.Weapon.Definition.InsteadOfDamage != game.TargetedEffectNone
 
 	lethal := false
 	origin, direction := a.createRay()
@@ -190,9 +190,9 @@ func (a *ServerActionShot) simulateOneProjectile() game.VisualProjectile {
 	if rayHitInfo.HitUnit() && !dodged {
 		unitHitID = int64(rayHitInfo.UnitHit.UnitID())
 		util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] Unit was HIT %s(%d) -> %s", rayHitInfo.UnitHit.GetName(), unitHitID, rayHitInfo.BodyPart))
-        if !effectInsteadOfDamage {
-            projectileBaseDamage, lethal = a.engine.HandleUnitHitWithProjectile(a.unit, a.damageModifier, rayHitInfo)
-        }
+		if !effectInsteadOfDamage {
+			projectileBaseDamage, lethal = a.engine.HandleUnitHitWithProjectile(a.unit, a.damageModifier, rayHitInfo)
+		}
 	} else {
 		if rayHitInfo.Hit {
 			blockPosHit := rayHitInfo.HitInfo3D.CollisionGridPosition
@@ -210,10 +210,10 @@ func (a *ServerActionShot) simulateOneProjectile() game.VisualProjectile {
 			projectileDestination = endOfRay
 		}
 	}
-    finalBlockPosition := voxel.PositionToGridInt3(projectileDestination)
+	finalBlockPosition := voxel.PositionToGridInt3(projectileDestination)
 	projectile := game.VisualProjectile{
 		Origin:        origin,
-        Velocity: direction.Normalize().Mul(10),
+		Velocity:      direction.Normalize().Mul(10),
 		Destination:   projectileDestination,
 		UnitHit:       unitHitID,
 		BodyPart:      rayHitInfo.BodyPart,
@@ -226,17 +226,17 @@ func (a *ServerActionShot) simulateOneProjectile() game.VisualProjectile {
 		DodgedUnit:    dodgedUnit,
 		Braced:        braced,
 	}
-    if effectInsteadOfDamage {
-        projectile.Damage = 0
-        projectile.InsteadOfDamage = game.MessageTargetedEffect{
-            Position:    finalBlockPosition,
-            TurnsToLive: a.unit.Weapon.Definition.TurnsToLive,
-            Radius:      a.unit.Weapon.Definition.Radius,
-            Effect:      a.unit.Weapon.Definition.InsteadOfDamage,
-        }
-        a.engine.ApplyTargetedEffectFromMessage(projectile.InsteadOfDamage) // apply effect immediately
-        projectile.InsteadOfDamage.UnitDamages = a.engine.TakeEffectDamageLog()
-    }
+	if effectInsteadOfDamage {
+		projectile.Damage = 0
+		projectile.InsteadOfDamage = game.MessageTargetedEffect{
+			Position:    finalBlockPosition,
+			TurnsToLive: a.unit.Weapon.Definition.TurnsToLive,
+			Radius:      a.unit.Weapon.Definition.Radius,
+			Effect:      a.unit.Weapon.Definition.InsteadOfDamage,
+		}
+		a.engine.ApplyTargetedEffectFromMessage(projectile.InsteadOfDamage) // apply effect immediately
+		projectile.InsteadOfDamage.UnitDamages = a.engine.TakeEffectDamageLog()
+	}
 	return projectile
 }
 

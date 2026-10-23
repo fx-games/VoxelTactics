@@ -2,11 +2,11 @@ package util
 
 import (
 	"fmt"
-	"math"
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/memmaker/voxeltactics/engine/glhf"
+	"math"
 )
 
 type DrawPair struct {
@@ -125,8 +125,8 @@ type MeshNode struct {
 	currentFrame [3]int
 
 	// collision
-	colliders              []Collider
-	hidden                 bool
+	colliders []Collider
+	hidden    bool
 
 	samplerSource func(animationName string) [][]float32
 }
@@ -610,7 +610,6 @@ func (m SubMesh) ToVertexSlice(shader *glhf.Shader) *glhf.VertexSlice[glhf.GlFlo
 	if glErr != gl.NO_ERROR {
 		panic(fmt.Sprintf("glhf.MakeVertexSlice failed with error %d", glErr))
 	}
-
 
 	slice.Begin()
 	slice.SetVertexData(m.VertexData)

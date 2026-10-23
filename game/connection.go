@@ -1,11 +1,11 @@
 package game
 
 import (
-	"io"
 	"bufio"
 	"encoding/json"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/memmaker/voxeltactics/engine/voxel"
+	"io"
 	"log"
 	"net"
 	"strings"

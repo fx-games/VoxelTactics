@@ -12,7 +12,7 @@ type Int3 struct {
 }
 
 func (i Int3) Add(other Int3) Int3 {
-	return Int3{i.X + other.X, i.Y + other.Y, i.Z + other.Z}
+	return Int3{X: i.X + other.X, Y: i.Y + other.Y, Z: i.Z + other.Z}
 }
 
 func (i Int3) Mul(factor int32) Int3 {
@@ -27,7 +27,7 @@ func (i Int3) ToFloatVec3() mgl32.Vec3 {
 }
 
 func (i Int3) Sub(tr Int3) Int3 {
-	return Int3{i.X - tr.X, i.Y - tr.Y, i.Z - tr.Z}
+	return Int3{X: i.X - tr.X, Y: i.Y - tr.Y, Z: i.Z - tr.Z}
 }
 
 func (i Int3) ToVec3() mgl32.Vec3 {
@@ -35,7 +35,7 @@ func (i Int3) ToVec3() mgl32.Vec3 {
 }
 
 func (i Int3) Div(factor int) Int3 {
-	return Int3{i.X / int32(factor), i.Y / int32(factor), i.Z / int32(factor)}
+	return Int3{X: i.X / int32(factor), Y: i.Y / int32(factor), Z: i.Z / int32(factor)}
 }
 
 func (i Int3) ToBlockCenterVec3() mgl32.Vec3 {
@@ -64,9 +64,9 @@ func (i Int3) ToCardinalDirection() Int3 {
 	}
 
 	if absX > absZ {
-		return Int3{signX, 0, 0}
+		return Int3{X: signX, Y: 0, Z: 0}
 	} else {
-		return Int3{0, 0, signZ}
+		return Int3{X: 0, Y: 0, Z: signZ}
 	}
 }
 func (i Int3) ToDiagonalDirection() Int3 {
@@ -93,11 +93,11 @@ func (i Int3) ToDiagonalDirection() Int3 {
 	ratio := float64(absX) / float64(absZ)
 
 	if ratio > 0.5 && ratio < 1.5 { // diagonal
-		return Int3{signX, 0, signZ}
+		return Int3{X: signX, Y: 0, Z: signZ}
 	} else if ratio >= 1.5 { // vertical
-		return Int3{signX, 0, 0}
+		return Int3{X: signX, Y: 0, Z: 0}
 	} else { // horizontal
-		return Int3{0, 0, signZ}
+		return Int3{X: 0, Y: 0, Z: signZ}
 	}
 }
 

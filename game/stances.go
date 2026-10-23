@@ -12,20 +12,20 @@ func (a HumanoidAnimation) Str() string {
 }
 
 const (
-	AnimationIdle       HumanoidAnimation = "animation.idle"
-	AnimationWeaponIdle HumanoidAnimation = "animation.weapon_idle"
-	AnimationWallIdleLeft HumanoidAnimation = "animation.wall_idle_Left"
+	AnimationIdle          HumanoidAnimation = "animation.idle"
+	AnimationWeaponIdle    HumanoidAnimation = "animation.weapon_idle"
+	AnimationWallIdleLeft  HumanoidAnimation = "animation.wall_idle_Left"
 	AnimationWallIdleRight HumanoidAnimation = "animation.wall_idle_right"
-	AnimationWalk       HumanoidAnimation = "animation.walk"
-	AnimationWeaponWalk HumanoidAnimation = "animation.weapon_walk"
-	AnimationClimb      HumanoidAnimation = "animation.climb"
-	AnimationDrop       HumanoidAnimation = "animation.drop"
-	AnimationDeath      HumanoidAnimation = "animation.death"
-	AnimationHit        HumanoidAnimation = "animation.hit"
-	AnimationWeaponFire HumanoidAnimation = "animation.weapon_fire"
-	AnimationDebug      HumanoidAnimation = "animation.debug"
-	AnimationCrouch     HumanoidAnimation = "animation.crouch"
-	AnimationProne      HumanoidAnimation = "animation.prone"
+	AnimationWalk          HumanoidAnimation = "animation.walk"
+	AnimationWeaponWalk    HumanoidAnimation = "animation.weapon_walk"
+	AnimationClimb         HumanoidAnimation = "animation.climb"
+	AnimationDrop          HumanoidAnimation = "animation.drop"
+	AnimationDeath         HumanoidAnimation = "animation.death"
+	AnimationHit           HumanoidAnimation = "animation.hit"
+	AnimationWeaponFire    HumanoidAnimation = "animation.weapon_fire"
+	AnimationDebug         HumanoidAnimation = "animation.debug"
+	AnimationCrouch        HumanoidAnimation = "animation.crouch"
+	AnimationProne         HumanoidAnimation = "animation.prone"
 )
 
 type Stance int
@@ -74,8 +74,8 @@ func (s LeanWallLeft) GetAnimation() HumanoidAnimation {
 
 func (s LeanWallLeft) GetOccupiedBlockOffsets(forward voxel.Int3) []voxel.Int3 {
 	return []voxel.Int3{
-		{0, 0, 0}, // legs
-		{Y: 1},    // torso
+		{},     // legs
+		{Y: 1}, // torso
 	}
 }
 
@@ -91,8 +91,8 @@ func (s LeanWallRight) GetAnimation() HumanoidAnimation {
 
 func (s LeanWallRight) GetOccupiedBlockOffsets(forward voxel.Int3) []voxel.Int3 {
 	return []voxel.Int3{
-		{0, 0, 0}, // legs
-		{Y: 1},    // torso
+		{},     // legs
+		{Y: 1}, // torso
 	}
 }
 
@@ -108,7 +108,7 @@ func (s WeaponReady) GetAnimation() HumanoidAnimation {
 
 func (s WeaponReady) GetOccupiedBlockOffsets(forward voxel.Int3) []voxel.Int3 {
 	return []voxel.Int3{
-		{0, 0, 0},                     // legs
+		{},                            // legs
 		{Y: 1},                        // torso
 		forward.Add(voxel.Int3{Y: 1}), // arms & weapon
 	}

@@ -53,7 +53,7 @@ type UnitDamage struct {
 }
 
 type VisualFlightWithImpact struct {
-	Trajectory []mgl32.Vec3
+	Trajectory    []mgl32.Vec3
 	FinalWorldPos mgl32.Vec3
 	Consequence   MessageTargetedEffect
 	VisitedBlocks []voxel.Int3

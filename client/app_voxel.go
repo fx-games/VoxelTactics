@@ -82,7 +82,7 @@ func (a *BattleClient) LoadConstructionFile(filename string) *voxel.Map {
 	terrainTexture, textureIndices := util.CreateBlockAtlasFromDirectory("assets/textures/blocks/minecraft", listOfBlocks)
 	bf := voxel.NewBlockFactory(textureIndices)
 
-	loadedMap := voxel.NewMapFromConstruction(bf, a.chunkShader, construction, voxel.Int3{16, 16, 16})
+	loadedMap := voxel.NewMapFromConstruction(bf, a.chunkShader, construction, voxel.Int3{X: 16, Y: 16, Z: 16})
 	loadedMap.SetTerrainTexture(terrainTexture)
 
 	a.SetVoxelMap(loadedMap)
@@ -92,7 +92,7 @@ func (a *BattleClient) LoadConstructionFile(filename string) *voxel.Map {
 func (a *BattleClient) LoadEmptyWorld(mapSize voxel.Int3, chunkSizeHorizontal, chunkSizeHeight int32) *voxel.Map {
 	var loadedMap *voxel.Map
 
-    terrainTexture, bl := a.GetAssets().LoadBlockTextureAtlas("star_odyssey_01")
+	terrainTexture, bl := a.GetAssets().LoadBlockTextureAtlas("star_odyssey_01")
 	bl.ApplyGameplayRules(a.GameInstance)
 	//bf := voxel.NewBlockFactory(textureIndices)
 	loadedMap = voxel.NewMap(int32(mapSize.X), int32(mapSize.Y), int32(mapSize.Z), chunkSizeHorizontal, chunkSizeHeight)
@@ -114,7 +114,7 @@ func (a *BattleClient) LoadEmptyWorld(mapSize voxel.Int3, chunkSizeHorizontal, c
 func (a *BattleClient) LoadMapBlocks() {
 	var loadedMap *voxel.Map
 
-    terrainTexture, bl := a.GetAssets().LoadBlockTextureAtlas("star_odyssey_01")
+	terrainTexture, bl := a.GetAssets().LoadBlockTextureAtlas("star_odyssey_01")
 	// Create atlas and index from directory
 	//	terrainTexture, indexMap := util.CreateBlockAtlasFromDirectory("./assets/textures/blocks/star_odyssey", listOfBlocks)
 	//	terrainTexture.SaveAsPNG("./assets/textures/blocks/star_odyssey_01.png")
