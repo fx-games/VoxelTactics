@@ -287,10 +287,8 @@ func (g *battlefieldGenerator) stairs(r rect) {
 			for y := int32(1); y <= step; y++ {
 				g.set(x, y, z, "stripped_oak_log")
 			}
-			// headroom: open the upper floor slab above the higher steps
-			if step >= 2 {
-				g.clear(x, storeyHeight, z)
-			}
+			// headroom: walkers need three clear blocks above a step to climb it
+			g.clear(x, storeyHeight, z)
 		}
 	}
 	// keep the landing in front of the stairs free on the upper floor

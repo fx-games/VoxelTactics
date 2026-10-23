@@ -1,9 +1,9 @@
 package game
 
 import (
-	"github.com/memmaker/voxeltactics/engine/path"
-	"github.com/memmaker/voxeltactics/engine/voxel"
 	"slices"
+
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type ActionMove struct {
@@ -66,16 +66,17 @@ func (a *ActionMove) GetCost(target voxel.Int3) float64 {
 func (a *ActionMove) updateTargetData() {
 	footPosInt := a.unit.GetBlockPosition()
 	var valid []voxel.Int3
-	dist, prevNodeMap := path.Dijkstra[voxel.Int3](path.NewNode(footPosInt), float64(a.unit.MovesLeft()), NewPather(a.gameMap, a.unit))
-	for node, distance := range dist {
+	cost, prev := NewMoveGraph(a.gameMap, a.unit).Reach(toPos(footPosInt), int(a.unit.MovesLeft()*navCost))
+	for p, c := range cost {
+		node := toInt3(p)
 		if node == footPosInt {
 			continue
 		}
 		valid = append(valid, node)
-		a.distanceMap[node] = distance
+		a.distanceMap[node] = float64(c) / navCost
 	}
-	for node, prevNode := range prevNodeMap {
-		a.previousNodeMap[node] = prevNode
+	for p, from := range prev {
+		a.previousNodeMap[toInt3(p)] = toInt3(from)
 	}
 	a.validTargets = valid
 }

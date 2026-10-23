@@ -22,7 +22,7 @@ rebuilt in steps 5-7 and does not build in between.
       chunk storage, greedy mesher, game lighting and GL code go.
 - [x] 2. Maps: convert `map.bin`, `test-map.bin` and the `.construction` imports
       (keeping block properties) to region worlds; editor saves regions.
-- [ ] 3. Movement: `nav.Reach`/`nav.Graph` replace `engine/path` and
+- [x] 3. Movement: `nav.Reach`/`nav.Graph` replace `engine/path` and
       `GetNeighborsForGroundMovement`; footprint and occupancy via `Passable`.
 - [ ] 4. Raycasts: `physics.Walk`/`RaycastBox` replace the DDA; unit hits use
       `model.RaycastPose`. Delete the dead GJK/EPA/AABB solver.

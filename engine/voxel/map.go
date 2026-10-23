@@ -298,30 +298,6 @@ func (m *Map) GetBlockedCardinalNeighborsUpToHeight(unitID uint64, position Int3
 	return neighbors
 }
 
-func (m *Map) GetNeighborsForGroundMovement(block Int3, keepPredicate func(neighbor Int3) bool) []Int3 {
-	neighbors := make([]Int3, 0, 8)
-	for _, offset := range cardinalNeighbors {
-		neighbor := block.Add(offset)
-		if m.ContainsGrid(neighbor) {
-			if m.IsSolidBlockAt(neighbor.X, neighbor.Y, neighbor.Z) {
-				neighbor = neighbor.Add(Int3{Y: 1}) // climbing one block is allowed
-			} else {
-				neighbor = m.GetGroundPosition(neighbor)
-			}
-			if m.ContainsGrid(neighbor) && keepPredicate(neighbor) {
-				neighbors = append(neighbors, neighbor)
-			}
-		}
-	}
-	for _, offset := range diagonalNeighbors {
-		neighbor := m.GetGroundPosition(block.Add(offset))
-		if m.ContainsGrid(neighbor) && keepPredicate(neighbor) {
-			neighbors = append(neighbors, neighbor)
-		}
-	}
-	return neighbors
-}
-
 func (m *Map) GetGroundPosition(startBlock Int3) Int3 {
 	for y := startBlock.Y; y >= 1; y-- {
 		if m.IsSolidBlockAt(startBlock.X, y-1, startBlock.Z) || !m.ContainsGrid(Int3{X: startBlock.X, Y: y - 1, Z: startBlock.Z}) {

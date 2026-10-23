@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/memmaker/voxellib/voxel/nav"
 	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
@@ -15,22 +16,16 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// walkableFrom flood-fills the standing positions reachable by a humanoid.
+// walkableFrom returns the standing positions reachable by a humanoid.
 func walkableFrom(voxelMap *voxel.Map, start voxel.Int3) map[voxel.Int3]bool {
-	seen := map[voxel.Int3]bool{start: true}
-	queue := []voxel.Int3{start}
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-		for _, next := range voxelMap.GetNeighborsForGroundMovement(current, func(n voxel.Int3) bool {
-			ok, _ := voxelMap.IsHumanoidPlaceable(n)
-			return ok
-		}) {
-			if !seen[next] {
-				seen[next] = true
-				queue = append(queue, next)
-			}
-		}
+	g := &nav.Graph{W: solidMap{voxelMap}, Passable: func(_, to nav.Pos) bool {
+		ok, _ := voxelMap.IsHumanoidPlaceable(toInt3(to))
+		return ok
+	}}
+	cost, _ := g.Reach(toPos(start), 1<<30)
+	seen := map[voxel.Int3]bool{}
+	for p := range cost {
+		seen[toInt3(p)] = true
 	}
 	return seen
 }
@@ -63,6 +58,9 @@ func TestGeneratedMapsArePlayable(t *testing.T) {
 			}
 		}
 		t.Logf("%s: upper floors reachable in %d of 25 maps", style, upperFloorsReached)
+		if style != "empty" && upperFloorsReached < 10 {
+			t.Errorf("%s: upper floors reachable in only %d of 25 maps", style, upperFloorsReached)
+		}
 	}
 }
 

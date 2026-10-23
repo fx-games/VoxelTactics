@@ -1,27 +1,30 @@
 package game
 
 import (
-	"github.com/memmaker/voxeltactics/engine/util"
+	"github.com/memmaker/voxellib/voxel/nav"
 	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
-type VoxelPather struct {
-	voxelMap *voxel.Map
-	unit     *UnitInstance
+// navCost is VoxelLib's cost of one straight step; move budgets are in steps.
+const navCost = 10
+
+// solidMap is the map as nav sees it: outside the bounds is solid, so walkers stay on the map.
+type solidMap struct{ m *voxel.Map }
+
+func (s solidMap) Solid(x, y, z int) bool {
+	if !s.m.Contains(int32(x), int32(y), int32(z)) {
+		return true
+	}
+	return s.m.IsSolidBlockAt(int32(x), int32(y), int32(z))
 }
 
-func (v *VoxelPather) GetNeighbors(node voxel.Int3) []voxel.Int3 {
-	return v.voxelMap.GetNeighborsForGroundMovement(node, v.isWalkable)
-}
-func (v *VoxelPather) isWalkable(neighbor voxel.Int3) bool {
-	placeable, _ := v.voxelMap.IsUnitPlaceable(v.unit, neighbor)
-	return placeable
+// NewMoveGraph is the walking graph for a unit; occupancy and stance footprint via Passable.
+func NewMoveGraph(voxelMap *voxel.Map, unit *UnitInstance) *nav.Graph {
+	return &nav.Graph{W: solidMap{voxelMap}, Passable: func(_, to nav.Pos) bool {
+		ok, _ := voxelMap.IsUnitPlaceable(unit, toInt3(to))
+		return ok
+	}}
 }
 
-func (v *VoxelPather) GetCost(currentNode, neighbor voxel.Int3) float64 {
-	return float64(util.EucledianDistance3D(currentNode.ToBlockCenterVec3D(), neighbor.ToBlockCenterVec3D()))
-	//return int(voxel.ManhattanDistance2(currentNode, neighbor))
-}
-func NewPather(voxelMap *voxel.Map, unit *UnitInstance) *VoxelPather {
-	return &VoxelPather{voxelMap: voxelMap, unit: unit}
-}
+func toPos(p voxel.Int3) nav.Pos  { return nav.Pos{X: int(p.X), Y: int(p.Y), Z: int(p.Z)} }
+func toInt3(p nav.Pos) voxel.Int3 { return voxel.Int3{X: int32(p.X), Y: int32(p.Y), Z: int32(p.Z)} }
