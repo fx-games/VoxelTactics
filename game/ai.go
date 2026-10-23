@@ -105,9 +105,7 @@ func (c *DummyClient) OnServerMessage(incomingMessage StringMessage) {
 		println("Game started!")
 		loadedMap := c.GetAssets().LoadVoxelMap(gameInfo.MapFile)
 		c.GameClient.SetVoxelMap(loadedMap)
-		blockList := GetDebugBlockNames()
-		indexMap := util.CreateIndexMapFromDirectory("assets/textures/blocks/star_odyssey", blockList)
-		bl := NewBlockLibrary(blockList, indexMap)
+		bl := c.GetAssets().LoadBlockLibrary("")
 		bl.ApplyGameplayRules(c.GameInstance)
 		c.SetBlockLibrary(bl)
 

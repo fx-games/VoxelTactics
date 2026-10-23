@@ -1,14 +1,14 @@
 package server
 
 import (
-	"time"
-	"sync"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/memmaker/voxeltactics/engine/util"
 	"github.com/memmaker/voxeltactics/game"
@@ -240,12 +240,12 @@ func (b *BattleServer) handleClientRequest(con net.Conn, id uint64) {
 	for {
 		messageType, err := clientReader.ReadString('\n')
 		if err != nil {
-			util.LogNetworkError(fmt.Sprintf(err.Error()))
+			util.LogNetworkError(err.Error())
 			return
 		}
 		message, err := clientReader.ReadString('\n')
 		if err != nil {
-			util.LogNetworkError(fmt.Sprintf(err.Error()))
+			util.LogNetworkError(err.Error())
 			return
 		}
 		message = strings.TrimSpace(message)
@@ -295,12 +295,12 @@ func (b *BattleServer) writeToClient(connection *UserConnection, messageType, re
 	util.LogNetworkDebug(fmt.Sprintf("\n[Server] TO Client(%d) msg(%s):\n%v\n", connection.id, string(messageType), string(response)))
 	_, err := connection.raw.Write(append(messageType, '\n'))
 	if err != nil {
-		util.LogNetworkError(fmt.Sprintf(err.Error()))
+		util.LogNetworkError(err.Error())
 		return
 	}
 	_, err = connection.raw.Write(append(response, '\n'))
 	if err != nil {
-		util.LogNetworkError(fmt.Sprintf(err.Error()))
+		util.LogNetworkError(err.Error())
 		return
 	}
 }
@@ -352,10 +352,7 @@ func (b *BattleServer) CreateGame(userId uint64, msg game.CreateGameMessage) {
 	battleGame.SetAuthoritative(true)
 	battleGame.AddPlayer(userId)
 
-	listOfBlocks := game.GetDebugBlockNames()
-	indexMap := util.CreateIndexMapFromDirectory("assets/textures/blocks/star_odyssey", listOfBlocks)
-
-	bl := game.NewBlockLibrary(listOfBlocks, indexMap)
+	bl := game.NewBlockLibrary(game.SharedRegistry())
 	bl.ApplyGameplayRules(battleGame)
 
 	battleGame.SetBlockLibrary(bl)
@@ -783,8 +780,8 @@ func (b *BattleServer) getUserAndGame(userID uint64) (*UserConnection, *game.Gam
 
 func NewBattleServer() *BattleServer {
 	return &BattleServer{
-		availableMaps:     make(map[string]string),             // filename -> display name
-		availableFactions: make(map[string]*game.Faction),      // faction name -> faction
+		availableMaps:     make(map[string]string),        // filename -> display name
+		availableFactions: make(map[string]*game.Faction), // faction name -> faction
 		availableUnits:    make(map[uint64]*game.UnitDefinition),
 		offline:           make(map[uint64]*offlinePlayer),
 		aliases:           make(map[uint64]uint64),

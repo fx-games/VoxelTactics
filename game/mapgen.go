@@ -109,7 +109,7 @@ func GenerateBattlefield(styleName string, seed int64, library *BlockLibrary) (*
 		rng:      rand.New(rand.NewSource(seed)),
 		style:    style,
 		library:  library,
-		voxelMap: voxel.NewMapWithEmptyChunks(genSizeX/genChunkWidth, genChunksY, genSizeZ/genChunkWidth, genChunkWidth, genChunkHeight),
+		voxelMap: voxel.NewMap(library.Reg, voxel.Int3{X: genSizeX, Y: genChunksY * genChunkHeight, Z: genSizeZ}),
 	}
 	spawnA := rect{x: 10, z: 1, w: genSizeX - 20, d: 7}
 	spawnB := rect{x: 10, z: genSizeZ - 8, w: genSizeX - 20, d: 7}
@@ -124,6 +124,9 @@ func GenerateBattlefield(styleName string, seed int64, library *BlockLibrary) (*
 		objectives = g.placeObjectives(objectiveArea)
 	}
 
+	for _, l := range g.lamps {
+		g.set(l.X, l.Y, l.Z, "light[level=15]")
+	}
 	meta := MapMetadata{
 		Name:           fmt.Sprintf("%s %d", strings.ToUpper(styleName[:1])+styleName[1:], seed),
 		SpawnPositions: [][]voxel.Int3{g.freePositions(spawnA), g.freePositions(spawnB)},
@@ -138,11 +141,11 @@ func (g *battlefieldGenerator) set(x, y, z int32, blockName string) {
 	if x < 0 || z < 0 || x >= genSizeX || z >= genSizeZ || y < 0 || y >= genChunksY*genChunkHeight {
 		return
 	}
-	g.voxelMap.SetBlock(x, y, z, g.library.NewBlockFromName(blockName))
+	g.voxelMap.SetBlock(x, y, z, g.library.State(blockName))
 }
 
 func (g *battlefieldGenerator) clear(x, y, z int32) {
-	g.voxelMap.SetBlock(x, y, z, voxel.NewAirBlock())
+	g.voxelMap.SetBlock(x, y, z, 0)
 }
 
 func (g *battlefieldGenerator) solid(x, y, z int32) bool {

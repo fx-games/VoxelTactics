@@ -9,7 +9,6 @@ import (
 
 	"github.com/memmaker/voxeltactics/engine/afs"
 	"github.com/memmaker/voxeltactics/engine/glhf"
-	"github.com/memmaker/voxeltactics/engine/voxel"
 	_ "github.com/spakin/netpbm"
 )
 
@@ -178,68 +177,6 @@ func tryMCStyleFaceNames(directory, blockName string) []string {
 }
 func getMCSuffixes() []string {
 	return []string{"_top", "_bottom", "_side", "_sides", "_front", "_back", "_side1", "_side2", "_side3"}
-}
-func MapFaceToTextureIndex(blockname string, face voxel.FaceType, availableSuffixes NameIndex) byte {
-	switch face {
-	case voxel.Top:
-		if textureIndex, ok := availableSuffixes[blockname+"_top"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	case voxel.Bottom:
-		if textureIndex, ok := availableSuffixes[blockname+"_bottom"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	case voxel.North:
-		if textureIndex, ok := availableSuffixes[blockname+"_back"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_side2"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_side"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_sides"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	case voxel.South:
-		if textureIndex, ok := availableSuffixes[blockname+"_front"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_side"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_sides"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	case voxel.East:
-		if textureIndex, ok := availableSuffixes[blockname+"_side3"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_side"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_sides"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	case voxel.West:
-		if textureIndex, ok := availableSuffixes[blockname+"_side1"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_side"]; ok {
-			return textureIndex
-		}
-		if textureIndex, ok := availableSuffixes[blockname+"_sides"]; ok {
-			return textureIndex
-		}
-		return availableSuffixes[blockname]
-	}
-	return availableSuffixes[blockname]
 }
 func DoesFileExist(filename string) bool {
 	_, err := afs.Stat(filename)

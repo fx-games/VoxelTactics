@@ -1,150 +1,75 @@
 package game
 
 import (
-	"fmt"
-	"github.com/memmaker/voxeltactics/engine/util"
-	"github.com/memmaker/voxeltactics/engine/voxel"
 	"sort"
+
+	"github.com/memmaker/voxeltactics/engine/voxel"
+	lv "github.com/memmaker/voxellib/voxel"
 )
 
-const VoidName = "!void"
-
-var VoidBlockDefinition = &BlockDefinition{
-	BlockID:                0,
-	UniqueName:             VoidName,
-	TextureIndicesForFaces: map[voxel.FaceType]byte{},
-}
-
+// BlockDefinition is what the game rules add to a block: how it reacts to hits.
 type BlockDefinition struct {
-	BlockID                byte
-	UniqueName             string
-	TextureIndicesForFaces map[voxel.FaceType]byte
-	OnDamageReceived       func(blockPos voxel.Int3, damage int)
-	IsBlockingProjectile   func() bool
+	Name                 string
+	OnDamageReceived     func(blockPos voxel.Int3, damage int)
+	IsBlockingProjectile func() bool
 }
 
-func (b *BlockDefinition) IsVoid() bool {
-	return b.UniqueName == VoidName
-}
+var VoidBlockDefinition = &BlockDefinition{Name: "!void"}
 
+// BlockLibrary resolves block names to states and holds the rules per block name.
 type BlockLibrary struct {
-	blocks   map[byte]*BlockDefinition
-	nameToId map[string]byte
+	Reg  *lv.Registry
+	defs map[string]*BlockDefinition
 }
 
-// TODO: Use texture atlas data to fill the library
-func NewBlockLibrary(blockNames []string, indexMap util.NameIndex) *BlockLibrary {
-	b := &BlockLibrary{
-		nameToId: make(map[string]byte),
-		blocks: map[byte]*BlockDefinition{
-			0: &BlockDefinition{
-				BlockID:                0,
-				UniqueName:             "air",
-				TextureIndicesForFaces: map[voxel.FaceType]byte{},
-			},
-		},
-	}
-
-	b.loadFromIndexMap(blockNames, indexMap)
-	return b
+func NewBlockLibrary(reg *lv.Registry) *BlockLibrary {
+	return &BlockLibrary{Reg: reg, defs: map[string]*BlockDefinition{}}
 }
 
-func (b *BlockLibrary) LastBlockID() byte {
-	return byte(len(b.blocks) - 1)
-}
-func (b *BlockLibrary) GetTextureIndexForFaces(block *voxel.Block, side voxel.FaceType) byte {
-	if block == nil {
-		return 0
+// State is the default state of the named block ("oak_stairs[facing=east]" sets properties).
+func (b *BlockLibrary) State(name string) lv.StateID { return b.Reg.Parse(name) }
+
+// Name is the block name of a state, without namespace or properties.
+func (b *BlockLibrary) Name(id lv.StateID) string { return shortName(b.Reg.Info(id).Name) }
+
+func shortName(n string) string {
+	for i := range n {
+		if n[i] == ':' {
+			return n[i+1:]
+		}
 	}
-	if block.IsAir() {
-		return 0
-	}
-	blockDefinition := b.blocks[block.ID]
-	if blockDefinition == nil {
-		return 0
-	}
-	return blockDefinition.TextureIndicesForFaces[side]
+	return n
 }
 
-func (b *BlockLibrary) loadFromIndexMap(blockNames []string, indexMap map[string]byte) {
-	if len(blockNames) > 254 {
-		panic("Too many blocks")
-	}
-	for index, name := range blockNames {
-		byteIndex := byte(index + 1) // block 0 is air
-		b.AddBlockDefinition(byteIndex, name, getFaceMapForBlock(name, indexMap))
-	}
-}
-
-func (b *BlockLibrary) AddBlockDefinition(blockID byte, name string, indexMap map[voxel.FaceType]byte) {
-	if _, exists := b.blocks[blockID]; exists {
-		panic("Block already exists")
-	}
-	b.blocks[blockID] = &BlockDefinition{
-		BlockID:                blockID,
-		UniqueName:             name,
-		TextureIndicesForFaces: indexMap,
-	}
-	b.nameToId[name] = blockID
-}
-
-func (b *BlockLibrary) NewBlockFromName(name string) *voxel.Block {
-	if blockID, exists := b.nameToId[name]; exists {
-		return voxel.NewBlock(blockID)
-	}
-	println(fmt.Sprintf("[BlockLibrary] Unknown block name: %s", name))
-	return voxel.NewBlock(0)
-}
-
-func (b *BlockLibrary) GetTextureIndexByName(name string) byte {
-	if blockID, exists := b.nameToId[name]; exists {
-		return b.blocks[blockID].TextureIndicesForFaces[voxel.Top]
-	}
-	return 0
-}
-
-func (b *BlockLibrary) GetBlockDefinition(blockID byte) *BlockDefinition {
-	return b.blocks[blockID]
-}
-
+// GetBlockDefinitionByName returns the rules of a block, creating empty ones.
 func (b *BlockLibrary) GetBlockDefinitionByName(name string) *BlockDefinition {
-	if blockID, exists := b.nameToId[name]; exists {
-		return b.blocks[blockID]
+	d := b.defs[name]
+	if d == nil {
+		d = &BlockDefinition{Name: name}
+		b.defs[name] = d
 	}
-	return nil
+	return d
+}
+
+// GetBlockDefinition returns the rules of the block a state belongs to.
+func (b *BlockLibrary) GetBlockDefinition(id lv.StateID) *BlockDefinition {
+	return b.GetBlockDefinitionByName(b.Name(id))
 }
 
 func (b *BlockLibrary) ApplyGameplayRules(a *GameInstance) {
-
-	tntDef := b.GetBlockDefinitionByName("tnt")
-	tntDef.OnDamageReceived = func(block voxel.Int3, damage int) {
+	b.GetBlockDefinitionByName("tnt").OnDamageReceived = func(block voxel.Int3, damage int) {
 		a.CreateExplodeEffect(block, 4)
 	}
-
-	destroyableDef := b.GetBlockDefinitionByName("bricks")
-	destroyableDef.OnDamageReceived = func(block voxel.Int3, damage int) {
+	b.GetBlockDefinitionByName("bricks").OnDamageReceived = func(block voxel.Int3, damage int) {
 		if damage > 4 {
 			a.DestroyBlock(block)
 		}
 	}
-
-	destroyableObjectiveDef := b.GetBlockDefinitionByName("target")
-	destroyableObjectiveDef.OnDamageReceived = func(blockPos voxel.Int3, damage int) {
-		missionDetails := a.GetMissionDetails()
-		if missionDetails.TryDamageObjective(blockPos, damage) {
+	b.GetBlockDefinitionByName("target").OnDamageReceived = func(blockPos voxel.Int3, damage int) {
+		if a.GetMissionDetails().TryDamageObjective(blockPos, damage) {
 			a.DestroyBlock(blockPos)
 		}
 	}
-}
-func getFaceMapForBlock(blockName string, indexMap map[string]byte) map[voxel.FaceType]byte {
-	result := make(map[voxel.FaceType]byte)
-	result[voxel.North] = util.MapFaceToTextureIndex(blockName, voxel.North, indexMap)
-	result[voxel.South] = util.MapFaceToTextureIndex(blockName, voxel.South, indexMap)
-	result[voxel.East] = util.MapFaceToTextureIndex(blockName, voxel.East, indexMap)
-	result[voxel.West] = util.MapFaceToTextureIndex(blockName, voxel.West, indexMap)
-	result[voxel.Top] = util.MapFaceToTextureIndex(blockName, voxel.Top, indexMap)
-	result[voxel.Bottom] = util.MapFaceToTextureIndex(blockName, voxel.Bottom, indexMap)
-	return result
 }
 
 func GetDebugBlockNames() []string {

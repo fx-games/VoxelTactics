@@ -217,8 +217,7 @@ func (g *GameInstance) RayCastLineOfSight(rayStart, rayEnd mgl32.Vec3, targetUni
 		currentBlockPos := voxel.Int3{X: x, Y: y, Z: z}
 		visitedBlocks = append(visitedBlocks, currentBlockPos)
 		if voxelMap.Contains(x, y, z) {
-			block := voxelMap.GetGlobalBlock(x, y, z)
-			if block != nil && !block.IsAir() {
+			if !voxelMap.IsAir(currentBlockPos) {
 				//println(fmt.Sprintf("[GameInstance] Raycast hit block at %d, %d, %d", x, y, z))
 				return true
 			} else if occupiedByTarget[currentBlockPos] {
@@ -249,8 +248,7 @@ func (g *GameInstance) RayCastToPos(rayStart mgl32.Vec3, targetBlockPos voxel.In
 			return true
 		}
 		if voxelMap.Contains(x, y, z) {
-			block := voxelMap.GetGlobalBlock(x, y, z)
-			if block != nil && !block.IsAir() {
+			if !voxelMap.IsAir(currentBlockPos) {
 				//println(fmt.Sprintf("[GameInstance] Raycast hit block at %d, %d, %d", x, y, z))
 				return true
 			}
@@ -272,9 +270,8 @@ func (g *GameInstance) RayCastHitUnit(rayStart, rayEnd mgl32.Vec3, sourceUnit, t
         if g.voxelMap.IsSolidBlockAt(x, y, z) || !g.voxelMap.Contains(x, y, z) {
             return true
         }
-        block := g.voxelMap.GetGlobalBlock(x, y, z)
-        if block != nil && block.IsOccupied() {
-            collidingObject := block.GetOccupant().(*UnitInstance)
+        if occupant := g.voxelMap.GetMapObjectAt(voxel.Int3{X: x, Y: y, Z: z}); occupant != nil {
+            collidingObject := occupant.(*UnitInstance)
             if collidingObject == sourceUnit {
                 return false
             }
@@ -304,10 +301,8 @@ func (g *GameInstance) RayCastFreeAim(rayStart, rayEnd mgl32.Vec3, sourceUnit *U
 		if g.voxelMap.IsSolidBlockAt(x, y, z) || !g.voxelMap.Contains(x, y, z) {
 			return true
 		}
-		block := g.voxelMap.GetGlobalBlock(x, y, z)
-
-		if block != nil && block.IsOccupied() {
-			collidingObject := block.GetOccupant().(*UnitInstance)
+		if occupant := g.voxelMap.GetMapObjectAt(voxel.Int3{X: x, Y: y, Z: z}); occupant != nil {
+			collidingObject := occupant.(*UnitInstance)
 			if collidingObject == sourceUnit {
 				return false
 			}

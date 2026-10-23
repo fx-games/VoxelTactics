@@ -29,8 +29,8 @@ func newTestSoldier(t *testing.T) *UnitInstance {
 			}
 		}
 	}
-	voxelMap := voxel.NewMapWithEmptyChunks(16, 8, 16, 16, 8)
-	voxelMap.SetFloorAtHeight(0, voxel.NewBlock(1))
+	voxelMap := voxel.NewMap(SharedRegistry(), voxel.Int3{X: 256, Y: 128, Z: 256})
+	voxelMap.SetFloorAtHeight(0, NewBlockLibrary(SharedRegistry()).State("stone"))
 	unit := NewUnitInstance(NewAssets(), "Soldier", soldier)
 	unit.SetVoxelMap(voxelMap)
 	unit.SetBlockPositionAndUpdateStance(voxel.Int3{X: 5, Y: 1, Z: 5})

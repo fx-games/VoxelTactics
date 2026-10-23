@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/json"
 	"os"
+	"path"
 
 	"github.com/memmaker/voxeltactics/engine/afs"
 	"github.com/memmaker/voxeltactics/engine/util"
@@ -15,14 +16,20 @@ type MapMetadata struct {
 	// PoIPlacements are markers standing on top of each Defend objective block, so the
 	// objective itself is one block below (see ObjectivePositions).
 	PoIPlacements []voxel.Int3
-	Blocks        string
+	Blocks        string // unused: the texture set of the old renderer
 	// Lamps are invisible light sources, e.g. inside buildings
 	Lamps []voxel.Int3 `json:",omitempty"`
 }
 
-func (m *MapMetadata) SaveToDisk(mapfilename string) error {
-	metaFilename := mapfilename + ".meta"
-	file, err := os.Create(metaFilename)
+// metaFile is the metadata's name inside a map folder.
+const metaFile = "meta.json"
+
+// SaveToDisk writes the metadata into the map folder dir.
+func (m *MapMetadata) SaveToDisk(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	file, err := os.Create(path.Join(dir, metaFile))
 	if err != nil {
 		return err
 	}

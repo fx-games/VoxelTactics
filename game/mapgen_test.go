@@ -73,7 +73,7 @@ func TestGeneratedMapsAreDeterministic(t *testing.T) {
 	for x := int32(0); x < genSizeX; x++ {
 		for y := int32(0); y < genChunksY*genChunkHeight; y++ {
 			for z := int32(0); z < genSizeZ; z++ {
-				if first.GetGlobalBlock(x, y, z).ID != second.GetGlobalBlock(x, y, z).ID {
+				if first.State(x, y, z) != second.State(x, y, z) {
 					t.Fatalf("maps differ at %d,%d,%d", x, y, z)
 				}
 			}
@@ -84,8 +84,7 @@ func TestGeneratedMapsAreDeterministic(t *testing.T) {
 func TestGeneratedMapLighting(t *testing.T) {
 	assets := NewAssets()
 	voxelMap, meta, _ := GenerateBattlefield("urban", 7, assets.LoadBlockLibrary(generatedBlockSet))
-	voxelMap.EnableLighting(meta.Lamps)
-	if light := voxelMap.LightAt(meta.SpawnPositions[0][0].Add(voxel.Int3{Y: 1})); light != 15 {
+	if light, _ := voxelMap.Light(meta.SpawnPositions[0][0].Add(voxel.Int3{Y: 1})); light != 15 {
 		t.Errorf("spawn zone should be in full sunlight, got %d", light)
 	}
 	if len(meta.Lamps) == 0 {
@@ -94,7 +93,7 @@ func TestGeneratedMapLighting(t *testing.T) {
 	darker := 0
 	for _, lamp := range meta.Lamps {
 		floor := lamp.Sub(voxel.Int3{Y: 1})
-		if light := voxelMap.LightAt(floor); light < 15 && light > 0 {
+		if sky, block := voxelMap.Light(floor); sky < 15 && block > 0 {
 			darker++
 		}
 	}
@@ -107,19 +106,18 @@ func TestGeneratedMapLighting(t *testing.T) {
 func TestSaveAndReloadEditedMap(t *testing.T) {
 	assets := NewAssets()
 	instance := NewGameInstanceWithDetails("editor-test", "gen:ruins:3", NewRandomDeathmatch())
-	instance.voxelMap.SetBlock(5, 3, 5, instance.blockLibrary.NewBlockFromName("tnt"))
+	instance.voxelMap.SetBlock(5, 3, 5, instance.blockLibrary.State("tnt"))
 	if err := instance.SaveMapAs("zz_editor_test"); err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(assets.GetMapPath("zz_editor_test"))
-	defer os.Remove(assets.GetMapPath("zz_editor_test") + ".meta")
+	defer os.RemoveAll(assets.GetMapPath("zz_editor_test"))
 
 	reloaded := assets.LoadMapWithDetails("zz_editor_test", NewRandomDeathmatch())
 	original := instance.voxelMap
 	for x := int32(0); x < genSizeX; x++ {
 		for y := int32(0); y < genChunksY*genChunkHeight; y++ {
 			for z := int32(0); z < genSizeZ; z++ {
-				if original.GetGlobalBlock(x, y, z).ID != reloaded.GetMap().GetGlobalBlock(x, y, z).ID {
+				if original.State(x, y, z) != reloaded.GetMap().State(x, y, z) {
 					t.Fatalf("block %d,%d,%d differs after reload", x, y, z)
 				}
 			}

@@ -50,10 +50,6 @@ func NewGameInstanceWithDetails(gameID string, mapFile string, details *MissionD
 	return NewGameInstanceWithMap(gameID, assetLoader, assetLoader.LoadMapWithDetails(mapFile, details))
 }
 
-func NewGameInstanceWithBiome(gameID string, biome Biome, details *MissionDetails) *GameInstance {
-	assetLoader := NewAssets()
-	return NewGameInstanceWithMap(gameID, assetLoader, assetLoader.LoadBiomeWithDetails(biome, details))
-}
 func NewGameInstanceWithMap(gameID string, assetLoader *Assets, mapInfo MapInfo) *GameInstance {
 	println(fmt.Sprintf("[GameInstance] '%s' created", gameID))
 	details := mapInfo.GetMissionDetails()
@@ -472,14 +468,11 @@ func (g *GameInstance) SetVoxelMap(loadedMap *voxel.Map) {
 	g.voxelMap = loadedMap
 }
 
-// SaveMapAs writes the map and its metadata to assets/maps/<name>.bin(.meta) and makes it the current map.
+// SaveMapAs writes the map and its metadata to assets/maps/<name>/ and makes it the current map.
 func (g *GameInstance) SaveMapAs(name string) error {
-	if g.mapMeta.Blocks == "" {
-		g.mapMeta.Blocks = generatedBlockSet
-	}
 	g.mapMeta.Name = name
 	mapFileName := g.assets.GetMapPath(name)
-	if err := g.voxelMap.SaveToDisk(mapFileName); err != nil {
+	if err := g.voxelMap.Save(mapFileName); err != nil {
 		return err
 	}
 	if err := g.mapMeta.SaveToDisk(mapFileName); err != nil {
@@ -491,7 +484,7 @@ func (g *GameInstance) SaveMapAs(name string) error {
 
 func (g *GameInstance) SaveMapToDisk() {
 	mapFileName := g.assets.GetMapPath(g.mapFile)
-	errMap := g.voxelMap.SaveToDisk(mapFileName)
+	errMap := g.voxelMap.Save(mapFileName)
 	metaErr := g.mapMeta.SaveToDisk(mapFileName)
 	if errMap != nil || metaErr != nil {
 		g.logGameError(fmt.Sprintf("[GameInstance] ERR - SaveMapToDisk - %v %v", errMap, metaErr))
@@ -534,11 +527,7 @@ func (g *GameInstance) CreateExplodeEffect(position voxel.Int3, radius float64) 
 	var affectedUnits []*UnitInstance
 	seen := make(map[uint64]bool)
 	g.voxelMap.ForBlockInSphere(position, radius, func(origin voxel.Int3, radius float64, x, y, z int32) {
-		block := g.voxelMap.GetGlobalBlock(x, y, z)
-		if block == nil || !block.IsOccupied() {
-			return
-		}
-		unit, isUnit := block.GetOccupant().(*UnitInstance)
+		unit, isUnit := g.voxelMap.GetMapObjectAt(voxel.Int3{X: x, Y: y, Z: z}).(*UnitInstance)
 		if isUnit && !seen[unit.UnitID()] {
 			seen[unit.UnitID()] = true
 			affectedUnits = append(affectedUnits, unit)
@@ -633,11 +622,10 @@ func (g *GameInstance) GetBlockLibrary() *BlockLibrary {
 	return g.blockLibrary
 }
 func (g *GameInstance) GetBlockDefAt(blockPos voxel.Int3) *BlockDefinition {
-	block := g.voxelMap.GetGlobalBlock(blockPos.X, blockPos.Y, blockPos.Z)
-	if block == nil {
+	if !g.voxelMap.ContainsGrid(blockPos) {
 		return VoidBlockDefinition
 	}
-	return g.blockLibrary.GetBlockDefinition(block.ID)
+	return g.blockLibrary.GetBlockDefinition(g.voxelMap.State(blockPos.X, blockPos.Y, blockPos.Z))
 }
 
 func (g *GameInstance) HandleUnitHitWithProjectile(attacker *UnitInstance, damageModifier float64, rayHitInfo FreeAimHit) (int, bool) {

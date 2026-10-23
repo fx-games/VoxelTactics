@@ -1,4 +1,4 @@
-package voxel
+package client
 
 import (
 	"github.com/go-gl/mathgl/mgl32"

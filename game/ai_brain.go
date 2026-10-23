@@ -217,10 +217,8 @@ func anyWithin(positions []voxel.Int3, target voxel.Int3, distance float64) bool
 // randomExplorationTargets picks ground positions spread over the map.
 func (b *AIBrain) randomExplorationTargets(count int) []voxel.Int3 {
 	voxelMap := b.g.GetVoxelMap()
-	chunks := voxelMap.GetSize()
-	sizeX := chunks.X * voxelMap.ChunkSizeHorizontal
-	sizeY := chunks.Y * voxelMap.ChunkSizeHeight
-	sizeZ := chunks.Z * voxelMap.ChunkSizeHorizontal
+	size := voxelMap.GetSize()
+	sizeX, sizeY, sizeZ := size.X, size.Y, size.Z
 	var targets []voxel.Int3
 	for attempts := 0; attempts < 50 && len(targets) < count; attempts++ {
 		start := voxel.Int3{X: b.rng.Int31n(sizeX), Y: sizeY - 1, Z: b.rng.Int31n(sizeZ)}

@@ -201,9 +201,9 @@ func (a *ServerActionShot) simulateOneProjectile() game.VisualProjectile {
 				blockDef.OnDamageReceived(blockPosHit, projectileBaseDamage)
 				hitBlocks = append(hitBlocks, blockPosHit)
 				chainDamages = a.engine.TakeEffectDamageLog()
-				util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] HIT -> Block with on damage effect %s at %s", blockDef.UniqueName, blockPosHit.ToString()))
+				util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] HIT -> Block with on damage effect %s at %s", blockDef.Name, blockPosHit.ToString()))
 			} else {
-				util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] MISS -> World Collision at %s hit %s", rayHitInfo.HitInfo3D.CollisionGridPosition.ToString(), blockDef.UniqueName))
+				util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] MISS -> World Collision at %s hit %s", rayHitInfo.HitInfo3D.CollisionGridPosition.ToString(), blockDef.Name))
 			}
 		} else {
 			util.LogServerUnitDebug(fmt.Sprintf("[ServerActionShot] MISS -> No Collision, out of weapon range"))

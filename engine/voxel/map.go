@@ -1,116 +1,115 @@
 package voxel
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/binary"
+	"encoding/json"
 	"fmt"
-	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/voxeltactics/engine/glhf"
 	"math"
 	"os"
+	"path/filepath"
+
+	"github.com/go-gl/mathgl/mgl32"
+	lv "github.com/memmaker/voxellib/voxel"
+	"github.com/memmaker/voxellib/voxel/anvil"
 )
 
+// Map is the battlefield: a box of blocks from (0,0,0) to Size (exclusive)
+// in a VoxelLib world, plus the units standing in it.
 type Map struct {
-	ChunkSizeHorizontal int32
-	ChunkSizeHeight     int32
-	ChunkSizeCube       int32
+	W    *lv.World
+	size Int3
+	// set changes a block. The client sets it to the engine's SetBlock so
+	// the change is relit and remeshed; nil writes the world directly.
+	set func(x, y, z int, id lv.StateID) bool
 
-	chunks             []*Chunk
-	width              int32
-	height             int32
-	depth              int32
-	chunkShader        *glhf.Shader
-	terrainTexture     *glhf.Texture
+	occupants          map[Int3]MapObject
 	knownUnitPositions map[uint64][]Int3
 	mapInfoLogger      func(string)
 	gameErrorLogger    func(string)
 
-	spawnCounter          int
-	textureCallback       func(block *Block, side FaceType) byte
-	maxChunkHeightForDraw int32
 	// cutawayHeight hides all blocks above this Y level (so players can look into buildings); -1 = off
+	lit           bool
 	cutawayHeight int32
-
-	lightingEnabled bool
-	lightingDirty   bool
-	lamps           []Int3
-	sky             []byte // sky openness (0..15) per block, see computeSky
 }
 
-func NewDefaultMap(width, height, depth int32) *Map {
-	return NewMap(width, height, depth, 32, 32)
-}
-
-func NewMap(width, height, depth, chunkSizeHorizontal, chunkSizeHeight int32) *Map {
-	m := &Map{
-		ChunkSizeHorizontal:   chunkSizeHorizontal,
-		ChunkSizeHeight:       chunkSizeHeight,
-		chunks:                make([]*Chunk, width*height*depth),
-		width:                 width,
-		height:                height,
-		depth:                 depth,
-		knownUnitPositions:    make(map[uint64][]Int3),
-		maxChunkHeightForDraw: height - 1,
-		cutawayHeight:         -1,
-	}
-	m.ChunkSizeCube = m.ChunkSizeHorizontal * m.ChunkSizeHeight * m.ChunkSizeHorizontal
-	//m.culler = occlusion.NewOcclusionCuller(512, m)
-	return m
-}
-
-func NewMapWithEmptyChunks(width, height, depth, chunkSizeHorizontal, chunkSizeHeight int32) *Map {
-	m := NewMap(width, height, depth, chunkSizeHorizontal, chunkSizeHeight)
-	for x := int32(0); x < width; x++ {
-		for y := int32(0); y < height; y++ {
-			for z := int32(0); z < depth; z++ {
-				m.NewChunk(x, y, z)
-			}
+// NewMap makes an empty map of the given size in blocks.
+func NewMap(reg *lv.Registry, size Int3) *Map {
+	w := lv.NewWorld(reg, 0, int(size.Y+15)&^15)
+	for cx := int32(0); cx <= (size.X-1)>>4; cx++ {
+		for cz := int32(0); cz <= (size.Z-1)>>4; cz++ {
+			w.AddChunk(w.NewChunk(lv.ChunkPos{X: int(cx), Z: int(cz)}))
 		}
 	}
-	return m
+	return OnWorld(w, size)
 }
 
-func NewMapFromSource(source []byte, shader *glhf.Shader, texture *glhf.Texture) *Map {
-	m := &Map{
-		chunks:             make([]*Chunk, 0),
-		knownUnitPositions: make(map[uint64][]Int3),
-		chunkShader:        shader,
-		terrainTexture:     texture,
+// OnWorld makes a map over an existing world.
+func OnWorld(w *lv.World, size Int3) *Map {
+	return &Map{W: w, size: size, occupants: map[Int3]MapObject{}, knownUnitPositions: map[uint64][]Int3{}, cutawayHeight: -1}
+}
+
+// SetBlockFunc routes block changes through f (see Map.set).
+func (m *Map) SetBlockFunc(f func(x, y, z int, id lv.StateID) bool) { m.set = f }
+
+const boundsFile = "bounds.json"
+
+// LoadMap reads a map saved by Save: region files plus its size.
+func LoadMap(reg *lv.Registry, dir string) (*Map, error) {
+	var size Int3
+	b, err := os.ReadFile(filepath.Join(dir, boundsFile))
+	if err != nil {
+		return nil, err
 	}
-	m.LoadFromSource(source)
-	return m
-}
-
-func NewMapFromGenerator(biomeFunc func() *Map, shader *glhf.Shader, texture *glhf.Texture) *Map {
-	newMap := biomeFunc()
-	newMap.SetShader(shader)
-	newMap.SetTerrainTexture(texture)
-	return newMap
-}
-
-func (m *Map) Update(delta float64) {
-	if m.lightingDirty {
-		m.RecomputeLighting()
+	if err := json.Unmarshal(b, &size); err != nil {
+		return nil, fmt.Errorf("%s: %w", boundsFile, err)
 	}
-	for _, chunk := range m.chunks {
-		if chunk != nil {
-			chunk.GenerateMesh()
-			if chunk.CheckForNewMeshes() {
-				return
-			}
+	m := NewMap(reg, size)
+	st := anvil.OpenStore(dir, false)
+	defer st.Close()
+	for _, p := range m.W.Chunks() {
+		root, err := st.Read(p.X, p.Z)
+		if err != nil {
+			return nil, err
 		}
+		if root == nil {
+			continue
+		}
+		ch, err := anvil.DecodeChunk(m.W, root)
+		if err != nil {
+			return nil, fmt.Errorf("chunk %v: %w", p, err)
+		}
+		m.W.RemoveChunk(p)
+		m.W.AddChunk(ch)
 	}
+	return m, nil
 }
+
+// Save writes the map's blocks as region files and its size to dir.
+func (m *Map) Save(dir string) error {
+	if err := os.MkdirAll(filepath.Join(dir, "region"), 0o755); err != nil {
+		return err
+	}
+	b, _ := json.Marshal(m.size)
+	if err := os.WriteFile(filepath.Join(dir, boundsFile), b, 0o644); err != nil {
+		return err
+	}
+	st := anvil.OpenStore(dir, true)
+	defer st.Close()
+	cs := map[[2]int]anvil.Compound{}
+	for _, p := range m.W.Chunks() {
+		if !m.chunkInBounds(p) {
+			continue // lighting margin
+		}
+		cs[[2]int{p.X, p.Z}] = anvil.EncodeChunk(m.W, m.W.Chunk(p))
+	}
+	if err := st.WriteAll(cs); err != nil {
+		return err
+	}
+	return st.Sync()
+}
+
 func (m *Map) SetLogger(mapLogger func(string), gameErrorLogger func(string)) {
 	m.mapInfoLogger = mapLogger
 	m.gameErrorLogger = gameErrorLogger
-}
-
-func (m *Map) logVoxelInfo(msg string) {
-	if m.mapInfoLogger != nil {
-		m.mapInfoLogger(msg)
-	}
 }
 
 func (m *Map) logGameError(msg string) {
@@ -119,145 +118,70 @@ func (m *Map) logGameError(msg string) {
 	}
 }
 
-func (m *Map) SetSize(width, height, depth int32) {
-	m.width = width
-	m.height = height
-	m.depth = depth
-	m.chunks = make([]*Chunk, width*height*depth)
-	for i := range m.chunks {
-		x := i % int(width)
-		y := (i / int(width)) % int(height)
-		z := i / (int(width) * int(height))
-		m.chunks[i] = NewChunk(m, int32(x), int32(y), int32(z))
-		println("Created empty chunk at", x, y, z)
+// GetSize is the map's size in blocks.
+func (m *Map) GetSize() Int3 { return m.size }
+
+func (m *Map) Contains(x, y, z int32) bool {
+	return x >= 0 && y >= 0 && z >= 0 && x < m.size.X && y < m.size.Y && z < m.size.Z
+}
+
+func (m *Map) ContainsGrid(p Int3) bool { return m.Contains(p.X, p.Y, p.Z) }
+
+func (m *Map) ContainsVec(pos mgl32.Vec3) bool { return m.ContainsGrid(PositionToGridInt3(pos)) }
+
+// State is the block state at x,y,z (air outside the map).
+func (m *Map) State(x, y, z int32) lv.StateID {
+	if !m.Contains(x, y, z) {
+		return 0
+	}
+	return m.W.Block(int(x), int(y), int(z))
+}
+
+// Info describes the block at x,y,z.
+func (m *Map) Info(x, y, z int32) *lv.StateInfo { return m.W.Reg.Info(m.State(x, y, z)) }
+
+// BlockName is the block's name without properties, e.g. "oak_stairs".
+func (m *Map) BlockName(p Int3) string { return m.Info(p.X, p.Y, p.Z).Name }
+
+// IsAir reports an empty or invisible block (air, light).
+func (m *Map) IsAir(p Int3) bool { return m.Info(p.X, p.Y, p.Z).Shape == lv.ShapeNone }
+
+// IsSolidBlockAt reports whether the block stops units (outside the map counts as open).
+func (m *Map) IsSolidBlockAt(x, y, z int32) bool {
+	return m.Contains(x, y, z) && m.Info(x, y, z).Collides
+}
+
+func (m *Map) SetBlock(x, y, z int32, id lv.StateID) {
+	if !m.Contains(x, y, z) {
+		return
+	}
+	if m.set != nil {
+		m.set(int(x), int(y), int(z), id)
+	} else {
+		m.W.SetBlock(int(x), int(y), int(z), id)
 	}
 }
 
-func (m *Map) SaveToDisk(filename string) error {
-	// serialize this map manually to a byte array
-	outfile, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	// use a gzip writer to compress the byte array
-	// then write the compressed byte array to the file
+func (m *Map) SetAir(p Int3) { m.SetBlock(p.X, p.Y, p.Z, 0) }
 
-	gzipWriter := gzip.NewWriter(outfile)
-	// write 2xint32
-	binary.Write(gzipWriter, binary.LittleEndian, m.ChunkSizeHorizontal)
-	binary.Write(gzipWriter, binary.LittleEndian, m.ChunkSizeHeight)
-
-	// write 3xint32
-	binary.Write(gzipWriter, binary.LittleEndian, m.width)
-	binary.Write(gzipWriter, binary.LittleEndian, m.height)
-	binary.Write(gzipWriter, binary.LittleEndian, m.depth)
-	// write the map dimensions
-	m.logVoxelInfo(fmt.Sprintf("[Map] Saving map with dimensions %d %d %d", m.width, m.height, m.depth))
-
-	// write the number of chunks
-	chunkCount := int16(len(m.chunks))
-	binary.Write(gzipWriter, binary.LittleEndian, chunkCount)
-	m.logVoxelInfo(fmt.Sprintf("[Map] Saving %d chunks", chunkCount))
-
-	// write the chunks
-	for _, chunk := range m.chunks {
-		binary.Write(gzipWriter, binary.LittleEndian, chunk.chunkPosX)
-		binary.Write(gzipWriter, binary.LittleEndian, chunk.chunkPosY)
-		binary.Write(gzipWriter, binary.LittleEndian, chunk.chunkPosZ)
-		m.logVoxelInfo(fmt.Sprintf("[Map] Saving chunk %d %d %d", chunk.chunkPosX, chunk.chunkPosY, chunk.chunkPosZ))
-		for _, block := range chunk.data {
-			id := byte(0)
-			if block != nil {
-				id = block.ID
-			}
-			err = binary.Write(gzipWriter, binary.LittleEndian, id)
-			if err != nil {
-				return err
-			}
+func (m *Map) SetFloorAtHeight(y int32, id lv.StateID) {
+	for x := int32(0); x < m.size.X; x++ {
+		for z := int32(0); z < m.size.Z; z++ {
+			m.SetBlock(x, y, z, id)
 		}
-		m.logVoxelInfo(fmt.Sprintf("[Map] Saved %d blocks", len(chunk.data)))
-	}
-
-	err = gzipWriter.Close()
-	if err != nil {
-		return err
-	}
-	err = outfile.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *Map) LoadFromSource(source []byte) {
-	reader := bytes.NewReader(source)
-	gzipReader, err := gzip.NewReader(reader)
-	if err != nil {
-		panic(err)
-	}
-	// read chunk size
-	binary.Read(gzipReader, binary.LittleEndian, &m.ChunkSizeHorizontal)
-	binary.Read(gzipReader, binary.LittleEndian, &m.ChunkSizeHeight)
-
-	m.ChunkSizeCube = m.ChunkSizeHorizontal * m.ChunkSizeHeight * m.ChunkSizeHorizontal
-
-	// read the map dimensions
-	binary.Read(gzipReader, binary.LittleEndian, &m.width)
-	binary.Read(gzipReader, binary.LittleEndian, &m.height)
-	binary.Read(gzipReader, binary.LittleEndian, &m.depth)
-	m.logVoxelInfo(fmt.Sprintf("[Map] Loading map with dimensions %d %d %d", m.width, m.height, m.depth))
-
-	// read the number of chunks
-	m.maxChunkHeightForDraw = m.height - 1
-
-	chunkCount := int16(0)
-	binary.Read(gzipReader, binary.LittleEndian, &chunkCount)
-	m.logVoxelInfo(fmt.Sprintf("[Map] Loading %d chunks", chunkCount))
-
-	m.chunks = make([]*Chunk, chunkCount)
-
-	// read the chunks
-	for i := int16(0); i < chunkCount; i++ {
-		var chunkPos [3]int32
-		binary.Read(gzipReader, binary.LittleEndian, &chunkPos[0])
-		binary.Read(gzipReader, binary.LittleEndian, &chunkPos[1])
-		binary.Read(gzipReader, binary.LittleEndian, &chunkPos[2])
-		m.logVoxelInfo(fmt.Sprintf("[Map] Loading chunk %d %d %d", chunkPos[0], chunkPos[1], chunkPos[2]))
-		chunk := NewChunk(m, chunkPos[0], chunkPos[1], chunkPos[2])
-		m.chunks[i] = chunk
-		for j := int32(0); j < m.ChunkSizeCube; j++ {
-			blockID := byte(0)
-			binary.Read(gzipReader, binary.LittleEndian, &blockID)
-			chunk.data[j] = NewBlock(blockID)
-		}
-		chunk.SetDirty()
 	}
 }
 
-func (m *Map) SetChunk(x, y, z int32, c *Chunk) {
-	m.chunks[x+y*m.width+z*m.width*m.height] = c
-}
-func (m *Map) ChangeMaxChunkHeightForDraw(change int32) int32 {
-	newValue := m.maxChunkHeightForDraw + change
-	if newValue < 0 {
-		newValue = 0
-	} else if newValue > m.height-1 {
-		newValue = m.height - 1
-	}
-	m.maxChunkHeightForDraw = newValue
-	return newValue
-}
 // ChangeCutawayHeight moves the cutaway level by delta blocks. Going above the map turns it off.
 // It returns the new level (-1 = off).
 func (m *Map) ChangeCutawayHeight(delta int32) int32 {
-	top := m.height*m.ChunkSizeHeight - 1
+	top := m.highestSolidLevel()
 	current := m.cutawayHeight
 	if current < 0 {
-		current = m.highestSolidLevel() + 1
+		current = top + 1
 	}
 	current += delta
-	if current >= top || current > m.highestSolidLevel() {
+	if current > top {
 		m.cutawayHeight = -1
 	} else {
 		m.cutawayHeight = max(current, 1)
@@ -266,228 +190,24 @@ func (m *Map) ChangeCutawayHeight(delta int32) int32 {
 }
 
 // CutawayHeight returns the highest visible block level, or -1 when everything is visible.
-func (m *Map) CutawayHeight() int32 {
-	return m.cutawayHeight
+func (m *Map) CutawayHeight() int32 { return m.cutawayHeight }
+
+// CurrentlyDraws reports whether the cutaway shows the block.
+func (m *Map) CurrentlyDraws(x, y, z int32) bool {
+	return m.cutawayHeight < 0 || y <= m.cutawayHeight
 }
 
 func (m *Map) highestSolidLevel() int32 {
-	highest := int32(0)
-	for _, chunk := range m.chunks {
-		if chunk == nil {
-			continue
-		}
-		for i, block := range chunk.data {
-			if block == nil || block.IsAir() {
-				continue
-			}
-			localY := (int32(i) / m.ChunkSizeHorizontal) % m.ChunkSizeHeight
-			highest = max(highest, chunk.chunkPosY*m.ChunkSizeHeight+localY)
-		}
-	}
-	return highest
-}
-
-func (m *Map) Draw(modelUniformIndex int, frustum []mgl32.Vec4) {
-	m.terrainTexture.Begin()
-	for _, chunk := range m.chunks {
-		if chunk == nil || !m.isChunkVisibleInFrustum(frustum, chunk.Position()) || chunk.chunkPosY > m.maxChunkHeightForDraw {
-			continue
-		}
-		if m.cutawayHeight >= 0 && chunk.chunkPosY*m.ChunkSizeHeight > m.cutawayHeight {
-			continue
-		}
-		chunk.Draw(m.chunkShader, modelUniformIndex)
-	}
-	m.terrainTexture.End()
-}
-func (m *Map) isChunkVisibleInFrustum(planes []mgl32.Vec4, chunkPos Int3) bool {
-	p := mgl32.Vec3{float32(chunkPos.X * m.ChunkSizeHorizontal), float32(chunkPos.Y * m.ChunkSizeHeight), float32(chunkPos.Z * m.ChunkSizeHorizontal)}
-	horizOffset := float32(m.ChunkSizeHorizontal)
-
-	points := []mgl32.Vec3{
-		mgl32.Vec3{p.X(), p.Y(), p.Z()},
-		mgl32.Vec3{p.X() + horizOffset, p.Y(), p.Z()},
-		mgl32.Vec3{p.X() + horizOffset, p.Y(), p.Z() + horizOffset},
-		mgl32.Vec3{p.X(), p.Y(), p.Z() + horizOffset},
-
-		mgl32.Vec3{p.X(), p.Y() + 256, p.Z()},
-		mgl32.Vec3{p.X() + horizOffset, p.Y() + 256, p.Z()},
-		mgl32.Vec3{p.X() + horizOffset, p.Y() + 256, p.Z() + horizOffset},
-		mgl32.Vec3{p.X(), p.Y() + 256, p.Z() + horizOffset},
-	}
-	for _, plane := range planes {
-		var in, out int
-		for _, point := range points {
-			if plane.Dot(point.Vec4(1)) < 0 {
-				out++
-			} else {
-				in++
-			}
-			if in != 0 && out != 0 {
-				break
-			}
-		}
-		if in == 0 {
-			return false
-		}
-	}
-	return true
-}
-
-func (m *Map) GetChunkFromPosition(pos mgl32.Vec3) *Chunk {
-	x := math.Floor(float64(pos.X()))
-	y := math.Floor(float64(pos.Y()))
-	z := math.Floor(float64(pos.Z()))
-	return m.GetChunkFromBlock(int32(x), int32(y), int32(z))
-}
-
-func (m *Map) GetBlockFromPosition(position mgl32.Vec3) *Block {
-	x := math.Floor(float64(position.X()))
-	y := math.Floor(float64(position.Y()))
-	z := math.Floor(float64(position.Z()))
-	return m.GetGlobalBlock(int32(x), int32(y), int32(z))
-}
-
-func (m *Map) GetChunkFromBlock(x, y, z int32) *Chunk {
-	return m.GetChunk(x/m.ChunkSizeHorizontal, y/m.ChunkSizeHeight, z/m.ChunkSizeHorizontal)
-}
-func (m *Map) GetChunk(x, y, z int32) *Chunk {
-	i := x + y*m.width + z*m.width*m.height
-	if i < 0 || i >= int32(len(m.chunks)) {
-		return nil
-	} else {
-		return m.chunks[i]
-	}
-}
-func (m *Map) ChunkExists(x, y, z int32) bool {
-	return m.GetChunk(x, y, z) != nil
-}
-func (m *Map) SetBlock(x int32, y int32, z int32, block *Block) {
-	chunkX := x / m.ChunkSizeHorizontal
-	chunkY := y / m.ChunkSizeHeight
-	chunkZ := z / m.ChunkSizeHorizontal
-	chunk := m.GetChunk(chunkX, chunkY, chunkZ)
-	if chunk != nil {
-		localX, localY, localZ := x%m.ChunkSizeHorizontal, y%m.ChunkSizeHeight, z%m.ChunkSizeHorizontal
-		chunk.SetBlock(localX, localY, localZ, block)
-		m.dirtyNeighborsAtChunkEdge(chunkX, chunkY, chunkZ, localX, localY, localZ)
-		if m.lightingEnabled {
-			m.lightingDirty = true // recomputed once per frame in Update, however many blocks changed
-		}
-	}
-}
-
-// dirtyNeighborsAtChunkEdge marks adjacent chunks for re-meshing when a block on a chunk border changes,
-// since their faces bordering this block may have become visible or hidden.
-func (m *Map) dirtyNeighborsAtChunkEdge(chunkX, chunkY, chunkZ, localX, localY, localZ int32) {
-	markDirty := func(cx, cy, cz int32) {
-		if cx < 0 || cy < 0 || cz < 0 || cx >= m.width || cy >= m.height || cz >= m.depth {
-			return
-		}
-		if neighbor := m.GetChunk(cx, cy, cz); neighbor != nil {
-			neighbor.SetDirty()
-		}
-	}
-	if localX == 0 {
-		markDirty(chunkX-1, chunkY, chunkZ)
-	} else if localX == m.ChunkSizeHorizontal-1 {
-		markDirty(chunkX+1, chunkY, chunkZ)
-	}
-	if localY == 0 {
-		markDirty(chunkX, chunkY-1, chunkZ)
-	} else if localY == m.ChunkSizeHeight-1 {
-		markDirty(chunkX, chunkY+1, chunkZ)
-	}
-	if localZ == 0 {
-		markDirty(chunkX, chunkY, chunkZ-1)
-	} else if localZ == m.ChunkSizeHorizontal-1 {
-		markDirty(chunkX, chunkY, chunkZ+1)
-	}
-}
-
-func (m *Map) SetAir(blockPos Int3) {
-	m.SetBlock(blockPos.X, blockPos.Y, blockPos.Z, NewAirBlock())
-}
-
-func (m *Map) ContainsVec(pos mgl32.Vec3) bool {
-	x, y, z := pos.X(), pos.Y(), pos.Z()
-	return m.Contains(int32(x), int32(y), int32(z))
-}
-
-func (m *Map) Contains(x int32, y int32, z int32) bool {
-	return x >= 0 && x < m.width*m.ChunkSizeHorizontal && y >= 0 && y < m.height*m.ChunkSizeHeight && z >= 0 && z < m.depth*m.ChunkSizeHorizontal
-}
-
-func (m *Map) GetBlockFromVec(pos Int3) *Block {
-	return m.GetGlobalBlock(int32(pos.X), int32(pos.Y), int32(pos.Z))
-}
-func (m *Map) GetGlobalBlock(x int32, y int32, z int32) *Block {
-	chunkX := x / m.ChunkSizeHorizontal
-	chunkY := y / m.ChunkSizeHeight
-	chunkZ := z / m.ChunkSizeHorizontal
-	chunk := m.GetChunk(chunkX, chunkY, chunkZ)
-	if chunk != nil {
-		blockX := x % m.ChunkSizeHorizontal
-		blockY := y % m.ChunkSizeHeight
-		blockZ := z % m.ChunkSizeHorizontal
-		return chunk.GetLocalBlock(blockX, blockY, blockZ)
-	} else {
-		return nil
-	}
-}
-
-func (m *Map) GetBlockAndChunk(blockPos Int3) (*Block, *Chunk) {
-	x := blockPos.X
-	y := blockPos.Y
-	z := blockPos.Z
-	chunkX := x / m.ChunkSizeHorizontal
-	chunkY := y / m.ChunkSizeHeight
-	chunkZ := z / m.ChunkSizeHorizontal
-	chunk := m.GetChunk(chunkX, chunkY, chunkZ)
-	if chunk != nil {
-		blockX := x % m.ChunkSizeHorizontal
-		blockY := y % m.ChunkSizeHeight
-		blockZ := z % m.ChunkSizeHorizontal
-		return chunk.GetLocalBlock(blockX, blockY, blockZ), chunk
-	} else {
-		return nil, nil
-	}
-}
-
-func (m *Map) IsSolidBlockAt(x int32, y int32, z int32) bool {
-	block := m.GetGlobalBlock(x, y, z)
-	return block != nil && !block.IsAir()
-}
-
-func (m *Map) ContainsGrid(position Int3) bool {
-	return m.Contains(position.X, position.Y, position.Z)
-}
-
-func (m *Map) SetShader(chunkShader *glhf.Shader) {
-	m.chunkShader = chunkShader
-}
-
-func (m *Map) SetTerrainTexture(texture *glhf.Texture) {
-	m.terrainTexture = texture
-}
-
-func (m *Map) NewChunk(cX int32, cY int32, cZ int32) *Chunk {
-	chunk := NewChunk(m, cX, cY, cZ)
-	m.SetChunk(cX, cY, cZ, chunk)
-	return chunk
-}
-
-func (m *Map) SetFloorAtHeight(yLevel int, block *Block) {
-	for _, chunk := range m.chunks {
-		if chunk.chunkPosY != 0 {
-			continue
-		}
-		for x := int32(0); x < m.ChunkSizeHorizontal; x++ {
-			for z := int32(0); z < m.ChunkSizeHorizontal; z++ {
-				chunk.SetBlock(x, int32(yLevel), z, block)
+	for y := m.size.Y - 1; y > 0; y-- {
+		for x := int32(0); x < m.size.X; x++ {
+			for z := int32(0); z < m.size.Z; z++ {
+				if m.State(x, y, z) != 0 {
+					return y
+				}
 			}
 		}
 	}
+	return 0
 }
 
 type MapObject interface {
@@ -497,7 +217,6 @@ type MapObject interface {
 }
 
 // PositionToGridInt3 converts a Vec3 to a Int3 by flooring the values.
-// DO NOT USE THIS FOR NEGATIVE VALUES, eg. direction vectors
 func PositionToGridInt3(pos mgl32.Vec3) Int3 {
 	return Int3{int32(math.Floor(float64(pos.X()))), int32(math.Floor(float64(pos.Y()))), int32(math.Floor(float64(pos.Z())))}
 }
@@ -505,224 +224,65 @@ func PositionToGridInt3(pos mgl32.Vec3) Int3 {
 func DirectionToGridInt3(dir mgl32.Vec3) Int3 {
 	return Int3{int32(math.Round(float64(dir.X()))), int32(math.Round(float64(dir.Y()))), int32(math.Round(float64(dir.Z())))}
 }
+
 func (m *Map) IsUnitPlaceable(unit MapObject, blockPos Int3) (bool, string) {
-	offsets := unit.GetOccupiedBlockOffsets(blockPos)
-	for _, offset := range offsets {
-		occupiedBlockPos := blockPos.Add(offset)
-		outsideOfWorld := !m.ContainsGrid(occupiedBlockPos)
-		if outsideOfWorld {
+	for _, offset := range unit.GetOccupiedBlockOffsets(blockPos) {
+		p := blockPos.Add(offset)
+		if !m.ContainsGrid(p) {
 			return false, "Outside of world"
 		}
-		isWall := m.IsSolidBlockAt(occupiedBlockPos.X, occupiedBlockPos.Y, occupiedBlockPos.Z)
-		if isWall {
+		if m.IsSolidBlockAt(p.X, p.Y, p.Z) {
 			return false, "Wall"
 		}
-		unitIsBlocking := m.IsOccupiedExcept(occupiedBlockPos, unit.UnitID())
-		if unitIsBlocking {
-			blockingUnit := m.GetBlockFromVec(occupiedBlockPos).GetOccupant()
-			return false, fmt.Sprintf("Unit %s(%d) is blocking", blockingUnit.GetName(), blockingUnit.UnitID())
+		if m.IsOccupiedExcept(p, unit.UnitID()) {
+			b := m.occupants[p]
+			return false, fmt.Sprintf("Unit %s(%d) is blocking", b.GetName(), b.UnitID())
 		}
 	}
 	return true, ""
 }
 
 func (m *Map) IsHumanoidPlaceable(blockPos Int3) (bool, string) {
-	offsets := []Int3{
-		{0, 0, 0},
-		{0, 1, 0},
-	}
-	for _, offset := range offsets {
-		occupiedBlockPos := blockPos.Add(offset)
-		outsideOfWorld := !m.ContainsGrid(occupiedBlockPos)
-		if outsideOfWorld {
+	for _, offset := range []Int3{{0, 0, 0}, {0, 1, 0}} {
+		p := blockPos.Add(offset)
+		if !m.ContainsGrid(p) {
 			return false, "Outside of world"
 		}
-		isWall := m.IsSolidBlockAt(occupiedBlockPos.X, occupiedBlockPos.Y, occupiedBlockPos.Z)
-		if isWall {
+		if m.IsSolidBlockAt(p.X, p.Y, p.Z) {
 			return false, "Wall"
 		}
 	}
-	below := blockPos.Add(Int3{0, -1, 0})
-	return m.IsSolidBlockAt(below.X, below.Y, below.Z), "No floor"
+	return m.IsSolidBlockAt(blockPos.X, blockPos.Y-1, blockPos.Z), "No floor"
 }
 
 func (m *Map) RemoveUnit(unit MapObject) {
-	currentPos, isOnMap := m.knownUnitPositions[unit.UnitID()]
-	if !isOnMap {
-		return
-	}
-	for _, occupiedBlockPos := range currentPos {
-		block := m.GetGlobalBlock(occupiedBlockPos.X, occupiedBlockPos.Y, occupiedBlockPos.Z)
-		if block != nil && block.IsOccupied() {
-			block.RemoveUnit(unit)
+	for _, p := range m.knownUnitPositions[unit.UnitID()] {
+		if o := m.occupants[p]; o != nil && o.UnitID() == unit.UnitID() {
+			delete(m.occupants, p)
 		}
 	}
 	delete(m.knownUnitPositions, unit.UnitID())
 }
+
 func (m *Map) SetUnit(unit MapObject, blockPos Int3) bool {
 	return m.SetUnitWithOffsets(unit, blockPos, unit.GetOccupiedBlockOffsets(blockPos))
 }
+
 func (m *Map) SetUnitWithOffsets(unit MapObject, blockPos Int3, offsets []Int3) bool {
-	_, isOnMap := m.knownUnitPositions[unit.UnitID()]
-	if isOnMap { // problem, we always remove the unit, but there are cases where we don't place it back
-		m.RemoveUnit(unit)
-	} // reason:
+	m.RemoveUnit(unit) // problem: there are cases where we don't place it back
 	ok, reason := m.IsUnitPlaceable(unit, blockPos)
-	if ok {
-		occupiedBlocks := make([]Int3, len(offsets))
-		//println(fmt.Sprintf("[Map] Placed %s(%d) at %s occupying %d blocks:", unit.GetName(), unit.Attacker(), blockPos.ToString(), len(offsets)))
-		for index, offset := range offsets {
-			occupiedBlockPos := blockPos.Add(offset)
-			block := m.GetGlobalBlock(occupiedBlockPos.X, occupiedBlockPos.Y, occupiedBlockPos.Z)
-			block.AddUnit(unit)
-			//println(fmt.Sprintf("[Map] - %s", occupiedBlockPos.ToString()))
-			occupiedBlocks[index] = occupiedBlockPos
-		}
-		m.knownUnitPositions[unit.UnitID()] = occupiedBlocks
-		return true
+	if !ok {
+		m.logGameError(fmt.Sprintf("[Map] ERR - Failed to place %s(%d): %s (%s)", unit.GetName(), unit.UnitID(), blockPos.ToString(), reason))
+		return false
 	}
-	m.logGameError(fmt.Sprintf("[Map] ERR - Failed to place %s(%d): %s (%s)", unit.GetName(), unit.UnitID(), blockPos.ToString(), reason))
-	return false
+	occupied := make([]Int3, len(offsets))
+	for i, offset := range offsets {
+		occupied[i] = blockPos.Add(offset)
+		m.occupants[occupied[i]] = unit
+	}
+	m.knownUnitPositions[unit.UnitID()] = occupied
+	return true
 }
-
-func GetBlocksNeededByConstruction(construction *Construction) []string {
-	blocks := make(map[string]bool)
-	for _, section := range construction.Sections {
-		for _, block := range section.Blocks {
-			if block == nil {
-				continue
-			}
-			blocks[block.Name] = true
-		}
-	}
-	var blockNames []string
-	for blockName := range blocks {
-		blockNames = append(blockNames, blockName)
-	}
-	return blockNames
-}
-func GetBlockEntitiesNeededByConstruction(construction *Construction) []string {
-	blockEntities := make(map[string]bool)
-	for _, section := range construction.Sections {
-		for _, blockEntity := range section.BlockEntities {
-			blockEntities[blockEntity.Name] = true
-		}
-	}
-	var blockEntityNames []string
-	for name := range blockEntities {
-		blockEntityNames = append(blockEntityNames, name)
-	}
-	return blockEntityNames
-}
-func NewMapFromConstruction(bf *BlockFactory, chunkShader *glhf.Shader, construction *Construction, chunkSize Int3) *Map {
-	minX, minY, minZ := int32(math.MaxInt32), int32(math.MaxInt32), int32(math.MaxInt32)
-	maxX, maxY, maxZ := int32(math.MinInt32), int32(math.MinInt32), int32(math.MinInt32)
-	for _, section := range construction.Sections {
-		if section.MinBlockX < minX {
-			minX = section.MinBlockX
-		}
-		if section.MinBlockY < minY {
-			minY = section.MinBlockY
-		}
-		if section.MinBlockZ < minZ {
-			minZ = section.MinBlockZ
-		}
-		if section.MinBlockX+int32(section.ShapeX) > maxX {
-			maxX = section.MinBlockX + int32(section.ShapeX)
-		}
-		if section.MinBlockY+int32(section.ShapeY) > maxY {
-			maxY = section.MinBlockY + int32(section.ShapeY)
-		}
-		if section.MinBlockZ+int32(section.ShapeZ) > maxZ {
-			maxZ = section.MinBlockZ + int32(section.ShapeZ)
-		}
-	}
-	chunkCountX := int32(math.Ceil(float64(maxX-minX) / float64(chunkSize.X)))
-	chunkCountY := int32(math.Ceil(float64(maxY-minY) / float64(chunkSize.Y)))
-	chunkCountZ := int32(math.Ceil(float64(maxZ-minZ) / float64(chunkSize.Z)))
-	voxelMap := NewDefaultMap(chunkCountX, chunkCountY, chunkCountZ)
-	voxelMap.SetShader(chunkShader)
-	chunkCounter := 0
-	for cX := int32(0); cX < chunkCountX; cX++ {
-		for cY := int32(0); cY < chunkCountY; cY++ {
-			for cZ := int32(0); cZ < chunkCountZ; cZ++ {
-				voxelMap.NewChunk(cX, cY, cZ)
-				chunkCounter++
-			}
-		}
-	}
-	// offsets for alignment at 0,0,0
-	xChunkOffset := int32(0)
-	yChunkOffset := int32(0)
-	zChunkOffset := int32(0)
-	if minX != 0 {
-		xChunkOffset = -minX
-	}
-	if minY != 0 {
-		yChunkOffset = -minY
-	}
-	if minZ != 0 {
-		zChunkOffset = -minZ
-	}
-	blockCounter := 0
-	for _, section := range construction.Sections {
-		blockIndex := 0
-		for x := section.MinBlockX; x < section.MinBlockX+int32(section.ShapeX); x++ {
-			for y := section.MinBlockY; y < section.MinBlockY+int32(section.ShapeY); y++ {
-				for z := section.MinBlockZ; z < section.MinBlockZ+int32(section.ShapeZ); z++ {
-					sourceBlockDef := section.Blocks[blockIndex]
-					if sourceBlockDef == nil {
-						sourceBlockDef = &BlockDefinition{
-							Name:      "air",
-							NameSpace: "minecraft",
-						}
-					}
-					alignedX := x + xChunkOffset
-					alignedY := y + yChunkOffset
-					alignedZ := z + zChunkOffset
-					voxelMap.SetBlock(alignedX, alignedY, alignedZ, bf.GetBlockByName(sourceBlockDef.Name))
-					blockCounter++
-					blockIndex++
-				}
-			}
-		}
-
-		for _, blockEntityDef := range section.BlockEntities {
-			alignedX := blockEntityDef.X + xChunkOffset
-			alignedY := blockEntityDef.Y + yChunkOffset
-			alignedZ := blockEntityDef.Z + zChunkOffset
-			voxelMap.SetBlock(alignedX, alignedY, alignedZ, bf.GetBlockByName(blockEntityDef.Name))
-		}
-	}
-
-	// debug
-	for blockname := range bf.UnknownBlocks {
-		println("[Map] Unknown block: " + blockname)
-	}
-
-	return voxelMap
-}
-
-var cardinalNeighbors = []Int3{
-	{1, 0, 0},
-	{-1, 0, 0},
-	{0, 0, 1},
-	{0, 0, -1},
-}
-
-var cardinalNeighborsUpDown = []Int3{
-	{0, 1, 0},
-	{0, -1, 0},
-}
-var cardinalNeighbors3D = append(cardinalNeighbors, cardinalNeighborsUpDown...)
-var diagonalNeighbors = []Int3{
-	{1, 0, 1},
-	{-1, 0, 1},
-	{1, 0, -1},
-	{-1, 0, -1},
-}
-
-var allNeighbors = append(cardinalNeighbors, diagonalNeighbors...)
 
 func (m *Map) GetBlockedCardinalNeighborsUpToHeight(unitID uint64, position Int3, height int32) []Int3 {
 	neighbors := make([]Int3, 0, 4)
@@ -740,15 +300,12 @@ func (m *Map) GetBlockedCardinalNeighborsUpToHeight(unitID uint64, position Int3
 
 func (m *Map) GetNeighborsForGroundMovement(block Int3, keepPredicate func(neighbor Int3) bool) []Int3 {
 	neighbors := make([]Int3, 0, 8)
-
 	for _, offset := range cardinalNeighbors {
 		neighbor := block.Add(offset)
 		if m.ContainsGrid(neighbor) {
 			if m.IsSolidBlockAt(neighbor.X, neighbor.Y, neighbor.Z) {
-				// check one block above (climbing one block is allowed)
-				neighbor = neighbor.Add(Int3{Y: 1})
+				neighbor = neighbor.Add(Int3{Y: 1}) // climbing one block is allowed
 			} else {
-				// get the lowest solid block below and test the block above that
 				neighbor = m.GetGroundPosition(neighbor)
 			}
 			if m.ContainsGrid(neighbor) && keepPredicate(neighbor) {
@@ -756,20 +313,16 @@ func (m *Map) GetNeighborsForGroundMovement(block Int3, keepPredicate func(neigh
 			}
 		}
 	}
-
 	for _, offset := range diagonalNeighbors {
-		neighbor := block.Add(offset)
-		neighbor = m.GetGroundPosition(neighbor)
+		neighbor := m.GetGroundPosition(block.Add(offset))
 		if m.ContainsGrid(neighbor) && keepPredicate(neighbor) {
 			neighbors = append(neighbors, neighbor)
 		}
 	}
-
 	return neighbors
 }
 
 func (m *Map) GetGroundPosition(startBlock Int3) Int3 {
-	// iterate down until we hit a solid block
 	for y := startBlock.Y; y >= 1; y-- {
 		if m.IsSolidBlockAt(startBlock.X, y-1, startBlock.Z) || !m.ContainsGrid(Int3{startBlock.X, y - 1, startBlock.Z}) {
 			return Int3{startBlock.X, y, startBlock.Z}
@@ -777,47 +330,15 @@ func (m *Map) GetGroundPosition(startBlock Int3) Int3 {
 	}
 	return startBlock
 }
-func (m *Map) IsOccupied(blockPos Int3) bool {
-	block := m.GetBlockFromVec(blockPos)
-	return block != nil && block.IsOccupied()
+
+func (m *Map) IsOccupied(p Int3) bool { return m.occupants[p] != nil }
+
+func (m *Map) IsOccupiedExcept(p Int3, unitID uint64) bool {
+	o := m.occupants[p]
+	return o != nil && o.UnitID() != unitID
 }
 
-func (m *Map) IsOccupiedExcept(blockPos Int3, unitID uint64) bool {
-	block := m.GetBlockFromVec(blockPos)
-	occupied := block.IsOccupied()
-	return block != nil && occupied && block.GetOccupant().UnitID() != unitID
-}
-
-func (m *Map) GetMapObjectAt(target Int3) MapObject {
-	block := m.GetBlockFromVec(target)
-	if block != nil {
-		return block.GetOccupant()
-	}
-	return nil
-}
-
-func (m *Map) getTextureIndexForSide(block *Block, side FaceType) byte {
-	if m.textureCallback != nil {
-		return m.textureCallback(block, side)
-	}
-	return block.ID - 1
-}
-
-func (m *Map) SetTextureIndexCallback(callback func(block *Block, side FaceType) byte) {
-	m.textureCallback = callback
-}
-
-func (m *Map) ClearAllChunks() {
-	for _, chunk := range m.chunks {
-		if chunk != nil {
-			chunk.ClearAllBlocks()
-		}
-	}
-}
-
-func (m *Map) GetTerrainTexture() *glhf.Texture {
-	return m.terrainTexture
-}
+func (m *Map) GetMapObjectAt(p Int3) MapObject { return m.occupants[p] }
 
 func (m *Map) IsUnitOnMap(u MapObject) bool {
 	_, ok := m.knownUnitPositions[u.UnitID()]
@@ -825,55 +346,28 @@ func (m *Map) IsUnitOnMap(u MapObject) bool {
 }
 
 func (m *Map) DebugGetAllOccupiedBlocks() []Int3 {
-	result := make([]Int3, 0)
-	for _, block := range m.knownUnitPositions {
-		result = append(result, block...)
+	var result []Int3
+	for _, blocks := range m.knownUnitPositions {
+		result = append(result, blocks...)
 	}
 	return result
 }
 
-func (m *Map) DebugGetOccupiedBlocks(id uint64) []Int3 {
-	blocks, exists := m.knownUnitPositions[id]
-	if !exists {
-		return []Int3{}
-	}
-	return blocks
-}
-
-func (m *Map) GetSize() Int3 {
-	return Int3{m.width, m.height, m.depth}
-}
-
-func (m *Map) CurrentlyDraws(x int32, y int32, z int32) bool {
-	if m.cutawayHeight >= 0 && y > m.cutawayHeight {
-		return false
-	}
-	chunk := m.GetChunkFromBlock(x, y, z)
-	return chunk != nil && chunk.chunkPosY <= m.maxChunkHeightForDraw
-}
+func (m *Map) DebugGetOccupiedBlocks(id uint64) []Int3 { return m.knownUnitPositions[id] }
 
 func (m *Map) ForBlockInHalfSphere(origin Int3, radius float64, applyToBlock func(origin Int3, radius float64, x int32, y int32, z int32)) {
-	for x := int32(-radius); x <= int32(radius); x++ {
-		for y := int32(0); y <= int32(radius); y++ {
-			for z := int32(-radius); z <= int32(radius); z++ {
-				if float64(x*x+y*y+z*z) <= radius*radius {
-					if !m.Contains(origin.X+x, origin.Y+y, origin.Z+z) {
-						continue
-					}
-					applyToBlock(origin, radius, origin.X+x, origin.Y+y, origin.Z+z)
-				}
-			}
-		}
-	}
+	m.forBlockInBall(origin, radius, 0, applyToBlock)
 }
+
 func (m *Map) ForBlockInSphere(origin Int3, radius float64, applyToBlock func(origin Int3, radius float64, x int32, y int32, z int32)) {
+	m.forBlockInBall(origin, radius, int32(-radius), applyToBlock)
+}
+
+func (m *Map) forBlockInBall(origin Int3, radius float64, minY int32, applyToBlock func(origin Int3, radius float64, x int32, y int32, z int32)) {
 	for x := int32(-radius); x <= int32(radius); x++ {
-		for y := int32(-radius); y <= int32(radius); y++ {
+		for y := minY; y <= int32(radius); y++ {
 			for z := int32(-radius); z <= int32(radius); z++ {
-				if float64(x*x+y*y+z*z) <= radius*radius {
-					if !m.Contains(origin.X+x, origin.Y+y, origin.Z+z) {
-						continue
-					}
+				if float64(x*x+y*y+z*z) <= radius*radius && m.Contains(origin.X+x, origin.Y+y, origin.Z+z) {
 					applyToBlock(origin, radius, origin.X+x, origin.Y+y, origin.Z+z)
 				}
 			}
@@ -887,40 +381,8 @@ type DistLocPair struct {
 	Location Int3
 }
 
-func (m *Map) FillTorchlight(origin Int3) {
-	if !m.ContainsGrid(origin) {
-		return
-	}
-	maxLightLevel := 15
-
-	startBlock, startChunk := m.GetBlockAndChunk(origin)
-	startBlock.SetTorchLight(byte(maxLightLevel))
-	startChunk.SetDirty()
-
-	spread := func(origin, currentNode, currentNeighbor Int3, costToPrev int) (bool, int) {
-		if m.IsSolidBlockAt(currentNeighbor.X, currentNeighbor.Y, currentNeighbor.Z) {
-			return false, 0
-		}
-
-		nodeLight := m.GetBlockFromVec(currentNode).GetTorchLight()
-
-		neighborBlock, neighborChunk := m.GetBlockAndChunk(currentNeighbor)
-		neighborLight := neighborBlock.GetTorchLight()
-
-		if neighborLight < nodeLight-1 {
-			neighborBlock.SetTorchLight(nodeLight - 1)
-			neighborChunk.SetDirty()
-			println(fmt.Sprintf("[Map] Spread torchlight from %s to %s: %d -> %d", currentNode.ToString(), currentNeighbor.ToString(), nodeLight, nodeLight-1))
-			return true, costToPrev + 1
-		}
-		return false, 0
-	}
-
-	m.FloodFill(origin, maxLightLevel, spread)
-}
 func (m *Map) FloodFill(origin Int3, maxSteps int, spreadFunc func(origin, location, neighbor Int3, stepsToLocation int) (bool, int)) {
-	visited := make(map[Int3]bool)
-	visited[origin] = true
+	visited := map[Int3]bool{origin: true}
 	queue := []DistLocPair{{0, 0, origin}}
 	for len(queue) > 0 {
 		current := queue[0]
@@ -930,30 +392,21 @@ func (m *Map) FloodFill(origin Int3, maxSteps int, spreadFunc func(origin, locat
 		}
 		for _, offset := range cardinalNeighbors3D {
 			neighbor := current.Location.Add(offset)
-			if !m.ContainsGrid(neighbor) {
+			if !m.ContainsGrid(neighbor) || visited[neighbor] {
 				continue
 			}
-			_, alreadyVisited := visited[neighbor]
-			if alreadyVisited {
-				continue
-			}
-
 			shouldSpread, neighborSteps := spreadFunc(origin, current.Location, neighbor, current.Steps)
-
 			if !shouldSpread {
 				continue
 			}
-
-			neighborDistance := origin.Sub(neighbor).Length()
-
 			visited[neighbor] = true
-			queue = append(queue, DistLocPair{neighborSteps, neighborDistance, neighbor})
+			queue = append(queue, DistLocPair{neighborSteps, origin.Sub(neighbor).Length(), neighbor})
 		}
 	}
 }
+
 func (m *Map) ForBlockInSphericFloodFill(origin Int3, radius float64, applyToBlock func(origin Int3, steps int, distance float64, x int32, y int32, z int32)) {
-	visited := make(map[Int3]bool)
-	visited[origin] = true
+	visited := map[Int3]bool{origin: true}
 	queue := []DistLocPair{{0, 0, origin}}
 	for len(queue) > 0 {
 		current := queue[0]
@@ -961,26 +414,42 @@ func (m *Map) ForBlockInSphericFloodFill(origin Int3, radius float64, applyToBlo
 		applyToBlock(origin, current.Steps, current.Distance, current.Location.X, current.Location.Y, current.Location.Z)
 		for _, offset := range cardinalNeighbors3D {
 			neighbor := current.Location.Add(offset)
-			if !m.ContainsGrid(neighbor) {
+			if !m.ContainsGrid(neighbor) || visited[neighbor] || m.IsSolidBlockAt(neighbor.X, neighbor.Y, neighbor.Z) {
 				continue
 			}
-			_, alreadyVisited := visited[neighbor]
-			if alreadyVisited {
-				continue
-			}
-			if m.IsSolidBlockAt(neighbor.X, neighbor.Y, neighbor.Z) {
-				continue
-			}
-			neighborDistance := origin.Sub(neighbor).Length()
-			neighborSteps := current.Steps + 1
-			if neighborDistance > radius {
-				continue
-			}
-			if float64(neighborSteps) > 2*radius {
+			distance, steps := origin.Sub(neighbor).Length(), current.Steps+1
+			if distance > radius || float64(steps) > 2*radius {
 				continue
 			}
 			visited[neighbor] = true
-			queue = append(queue, DistLocPair{neighborSteps, neighborDistance, neighbor})
+			queue = append(queue, DistLocPair{steps, distance, neighbor})
 		}
 	}
+}
+
+func (m *Map) chunkInBounds(p lv.ChunkPos) bool {
+	return p.X >= 0 && p.Z >= 0 && p.X <= int(m.size.X-1)>>4 && p.Z <= int(m.size.Z-1)>>4
+}
+
+// Light returns the sky and block light at p, computing the map's light on
+// first use. VoxelLib lights a chunk once its eight neighbours exist, so an
+// empty ring of chunks is added around the bounds.
+func (m *Map) Light(p Int3) (sky, block uint8) {
+	if !m.lit {
+		m.lit = true
+		maxX, maxZ := int(m.size.X-1)>>4, int(m.size.Z-1)>>4
+		for cx := -1; cx <= maxX+1; cx++ {
+			for cz := -1; cz <= maxZ+1; cz++ {
+				if c := (lv.ChunkPos{X: cx, Z: cz}); m.W.Chunk(c) == nil {
+					m.W.AddChunk(m.W.NewChunk(c))
+				}
+			}
+		}
+		for cx := 0; cx <= maxX; cx++ {
+			for cz := 0; cz <= maxZ; cz++ {
+				m.W.TryLightChunk(lv.ChunkPos{X: cx, Z: cz})
+			}
+		}
+	}
+	return m.W.Light(int(p.X), int(p.Y), int(p.Z))
 }

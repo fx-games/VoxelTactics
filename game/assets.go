@@ -1,7 +1,6 @@
 package game
 
 import (
-	"io"
 	"path"
 
 	"github.com/go-gl/mathgl/mgl32"
@@ -48,7 +47,7 @@ func (a *Assets) LoadMapWithDetails(mapFile string, details *MissionDetails) *De
 		details:      details,
 		metaData:     &mapMetadata,
 		blockLibrary: library,
-		loadedMap:    voxel.NewMapFromSource(a.LoadMap(mapFile), nil, nil),
+		loadedMap:    a.LoadMap(mapFile),
 	}
 }
 
@@ -77,43 +76,12 @@ func (a *Assets) LoadVoxelMap(mapName string) *voxel.Map {
 	if IsGeneratedMap(mapName) {
 		return a.generateMapWithDetails(mapName, NewRandomDeathmatch()).GetMap()
 	}
-	return voxel.NewMapFromSource(a.LoadMap(mapName), nil, nil)
+	return a.LoadMap(mapName)
 }
 
-func (a *Assets) LoadBiomeWithDetails(biome Biome, details *MissionDetails) MapInfo {
-	biomeName := biome.GetName()
-	atlas, library := a.LoadBlockTextureAtlas(biomeName)
-
-	biomeMap, mapMetadata := biome.Generate()
-	biomeMap.SetTerrainTexture(atlas)
-
-	details.SyncFromMap(mapMetadata)
-
-	return &DefaultMapInfo{
-		mapFile:      biomeName,
-		details:      details,
-		metaData:     &mapMetadata,
-		blockLibrary: library,
-		loadedMap:    biomeMap,
-	}
-}
-func (a *Assets) LoadBlockTextureAtlas(filename string) (*glhf.Texture, *BlockLibrary) {
-	filePath := path.Join(a.paths[AssetTypeBlockTextures], filename)
-	texture := mustLoadTexture(filePath + ".png")
-	texture.SetAtlasItemSize(16, 16)
-	indexMap := util.NewBlockIndexFromFile(filePath + ".idx")
-	blockList := util.NewBlockListFromFile(filePath + ".txt")
-	bl := NewBlockLibrary(blockList, indexMap)
-	return texture, bl
-}
-
-func (a *Assets) LoadBlockLibrary(filename string) *BlockLibrary {
-	filePath := path.Join(a.paths[AssetTypeBlockTextures], filename)
-	indexMap := util.NewBlockIndexFromFile(filePath + ".idx")
-	blockList := util.NewBlockListFromFile(filePath + ".txt")
-	bl := NewBlockLibrary(blockList, indexMap)
-	return bl
-}
+// LoadBlockLibrary returns a fresh library (rules bind to one game) over the shared registry.
+// The name of the map's old texture set is ignored.
+func (a *Assets) LoadBlockLibrary(string) *BlockLibrary { return NewBlockLibrary(SharedRegistry()) }
 
 func (a *Assets) LoadBitmapFont(fontName string, glyphWidth int, glyphHeight int) (*glhf.Texture, util.BitmapFontIndex) {
 	filePath := path.Join(a.paths[AssetTypeBitmapFonts], fontName)
@@ -160,23 +128,17 @@ func (a *Assets) getModelFile(name string) string {
 	return path.Join(a.paths[AssetTypeMeshes], name+".gltf")
 }
 
-func (a *Assets) LoadMap(filename string) []byte {
-	filePath := path.Join(a.paths[AssetTypeMaps], filename+".bin")
-	file, err := afs.Open(filePath)
+// LoadMap reads assets/maps/<name>/ (region files and bounds.json).
+func (a *Assets) LoadMap(name string) *voxel.Map {
+	m, err := voxel.LoadMap(SharedRegistry(), a.GetMapPath(name))
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
-	return data
+	return m
 }
 
-func (a *Assets) LoadMapMetadata(filename string) MapMetadata {
-	filePath := path.Join(a.paths[AssetTypeMaps], filename+".bin.meta")
-	return NewMapMetadataFromFile(filePath)
+func (a *Assets) LoadMapMetadata(name string) MapMetadata {
+	return NewMapMetadataFromFile(path.Join(a.GetMapPath(name), metaFile))
 }
 func (a *Assets) LoadSkin(file string) *glhf.Texture {
 	filePath := path.Join(a.paths[AssetTypeSkins], file+".png")
@@ -184,7 +146,7 @@ func (a *Assets) LoadSkin(file string) *glhf.Texture {
 }
 
 func (a *Assets) GetMapPath(mapName string) string {
-	return path.Join(a.paths[AssetTypeMaps], mapName+".bin")
+	return path.Join(a.paths[AssetTypeMaps], mapName)
 }
 
 func mustLoadTexture(filePath string) *glhf.Texture {
