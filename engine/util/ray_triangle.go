@@ -34,7 +34,7 @@ func intersectLineSegmentTriangle(rayStart, rayEnd mgl32.Vec3, v0, v1, v2 mgl32.
 
 	t := f * edge2.Dot(q)
 
-	if t > EPSILON {
+	if t > EPSILON && t <= 1 { // within the segment
 		return true, rayStart.Add(direction.Mul(t)) // Intersection
 	}
 

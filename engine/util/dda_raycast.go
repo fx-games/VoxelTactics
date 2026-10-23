@@ -1,9 +1,12 @@
 package util
 
 import (
-	"github.com/go-gl/mathgl/mgl32"
-	"github.com/memmaker/voxeltactics/engine/voxel"
 	"math"
+
+	"github.com/go-gl/mathgl/mgl32"
+	lv "github.com/memmaker/voxellib/voxel"
+	"github.com/memmaker/voxellib/voxel/physics"
+	"github.com/memmaker/voxeltactics/engine/voxel"
 )
 
 type CardinalDirection int
@@ -184,130 +187,49 @@ func (d HitInfo3D) WithDistance(newDist float64) HitInfo3D {
 	return d
 }
 
+// DDARaycast walks the grid cells from rayStart to rayEnd (VoxelLib physics.Walk)
+// until stopRay returns true.
 func DDARaycast(rayStart, rayEnd mgl32.Vec3, stopRay func(x, y, z int32) bool) HitInfo3D {
-	// adapted from: https://github.com/fenomas/fast-voxel-raycast/blob/master/index.js
-	t := 0.0
-	ix := int32(math.Floor(float64(rayStart.X())))
-	iy := int32(math.Floor(float64(rayStart.Y())))
-	iz := int32(math.Floor(float64(rayStart.Z())))
-
 	ray := rayEnd.Sub(rayStart)
-	maxRayLength := ray.Len()
-	rayDir := ray.Normalize()
-
-	stepx := int32(-1)
-	if rayDir.X() > 0 {
-		stepx = 1
+	length := float64(ray.Len())
+	if length == 0 {
+		return HitInfo3D{}
 	}
-	stepy := int32(-1)
-	if rayDir.Y() > 0 {
-		stepy = 1
-	}
-	stepz := int32(-1)
-	if rayDir.Z() > 0 {
-		stepz = 1
-	}
-
-	txDelta := math.Abs(float64(1.0 / rayDir.X()))
-	tyDelta := math.Abs(float64(1.0 / rayDir.Y()))
-	tzDelta := math.Abs(float64(1.0 / rayDir.Z()))
-
-	xdist := float64(rayStart.X()) - float64(ix)
-	if stepx > 0 {
-		xdist = float64(ix+1) - float64(rayStart.X())
-	}
-	ydist := float64(rayStart.Y()) - float64(iy)
-	if stepy > 0 {
-		ydist = float64(iy+1) - float64(rayStart.Y())
-	}
-	zdist := float64(rayStart.Z()) - float64(iz)
-	if stepz > 0 {
-		zdist = float64(iz+1) - float64(rayStart.Z())
-	}
-
-	txMax := math.Inf(1)
-	if txDelta < math.Inf(1) {
-		txMax = txDelta * xdist
-	}
-	tyMax := math.Inf(1)
-	if tyDelta < math.Inf(1) {
-		tyMax = tyDelta * ydist
-	}
-	tzMax := math.Inf(1)
-	if tzDelta < math.Inf(1) {
-		tzMax = tzDelta * zdist
-	}
-
-	steppedIndex := -1
-
-	for t <= float64(maxRayLength) {
-		if stopRay(ix, iy, iz) {
-			var previousGridPosition voxel.Int3
-			var side CubeSide
-			if steppedIndex == 0 {
-				if stepx > 0 {
-					side = Left
-					previousGridPosition = voxel.Int3{X: ix - 1, Y: iy, Z: iz}
-				} else {
-					side = Right
-					previousGridPosition = voxel.Int3{X: ix + 1, Y: iy, Z: iz}
-				}
+	dir := ray.Mul(float32(1 / length))
+	var hit HitInfo3D
+	physics.Walk(nil, float64(rayStart.X()), float64(rayStart.Y()), float64(rayStart.Z()), float64(dir.X()), float64(dir.Y()), float64(dir.Z()), length,
+		func(x, y, z int, _ lv.StateID, f lv.Face, t float64) bool {
+			if !stopRay(int32(x), int32(y), int32(z)) {
+				return false
 			}
-			if steppedIndex == 1 {
-				if stepy > 0 {
-					side = Bottom
-					previousGridPosition = voxel.Int3{X: ix, Y: iy - 1, Z: iz}
-				} else {
-					side = Top
-					previousGridPosition = voxel.Int3{X: ix, Y: iy + 1, Z: iz}
-				}
+			cell := voxel.Int3{X: int32(x), Y: int32(y), Z: int32(z)}
+			side, back := faceSide[f].side, faceSide[f].back
+			if t == 0 { // the ray starts inside the cell
+				side, back = Top, voxel.Int3{}
 			}
-			if steppedIndex == 2 {
-				if stepz > 0 {
-					side = Back
-					previousGridPosition = voxel.Int3{X: ix, Y: iy, Z: iz - 1}
-				} else {
-					side = Front
-					previousGridPosition = voxel.Int3{X: ix, Y: iy, Z: iz + 1}
-				}
-			}
-
-			return HitInfo3D{
+			hit = HitInfo3D{
 				Hit:                    true,
 				Distance:               t,
 				Side:                   side,
-				CollisionWorldPosition: rayStart.Add(rayDir.Mul(float32(t))),
-				PreviousGridPosition:   previousGridPosition,
-				CollisionGridPosition:  voxel.Int3{X: ix, Y: iy, Z: iz},
+				CollisionWorldPosition: rayStart.Add(dir.Mul(float32(t))),
+				PreviousGridPosition:   cell.Add(back),
+				CollisionGridPosition:  cell,
 			}
-		}
+			return true
+		})
+	return hit
+}
 
-		if txMax < tyMax {
-			if txMax < tzMax {
-				ix += stepx
-				t = txMax
-				txMax += txDelta
-				steppedIndex = 0
-			} else {
-				iz += stepz
-				t = tzMax
-				tzMax += tzDelta
-				steppedIndex = 2
-			}
-		} else {
-			if tyMax < tzMax {
-				iy += stepy
-				t = tyMax
-				tyMax += tyDelta
-				steppedIndex = 1
-			} else {
-				iz += stepz
-				t = tzMax
-				tzMax += tzDelta
-				steppedIndex = 2
-			}
-		}
-	}
-
-	return HitInfo3D{Hit: false}
+// faceSide maps the face a ray enters through to the old side names and the
+// offset back to the cell it came from.
+var faceSide = [lv.FaceCount]struct {
+	side CubeSide
+	back voxel.Int3
+}{
+	lv.FaceDown:  {Bottom, voxel.Int3{Y: -1}},
+	lv.FaceUp:    {Top, voxel.Int3{Y: 1}},
+	lv.FaceNorth: {Back, voxel.Int3{Z: -1}},
+	lv.FaceSouth: {Front, voxel.Int3{Z: 1}},
+	lv.FaceWest:  {Left, voxel.Int3{X: -1}},
+	lv.FaceEast:  {Right, voxel.Int3{X: 1}},
 }

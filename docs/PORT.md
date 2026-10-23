@@ -24,11 +24,12 @@ rebuilt in steps 5-7 and does not build in between.
       (keeping block properties) to region worlds; editor saves regions.
 - [x] 3. Movement: `nav.Reach`/`nav.Graph` replace `engine/path` and
       `GetNeighborsForGroundMovement`; footprint and occupancy via `Passable`.
-- [ ] 4. Raycasts: `physics.Walk`/`RaycastBox` replace the DDA; unit hits use
-      `model.RaycastPose`. Delete the dead GJK/EPA/AABB solver.
+- [x] 4. Raycasts: `physics.Walk` replaces the DDA (same hits, same speed); the
+      dead GJK/EPA/AABB solver is deleted; mesh hits stop at the segment end.
 - [ ] 5. Client: window, loop, terrain and sky through `voxel/engine` + `voxel/render`;
       iso and free cameras on `render.Camera`; cutaway height.
-- [ ] 6. Units, projectiles, selector: glTF via `importer`/`model` + `render.ModelRenderer`.
+- [ ] 6. Units, projectiles, selector: glTF via `importer`/`model` + `render.ModelRenderer`;
+      unit hits move to `model.RaycastPose` (bones → body zones).
 - [ ] 7. Overlays: decals and block highlights become a VoxelLib `voxel/render` feature
       (the game only says where); lines, smoke, HUD, menus, fonts on VoxelLib's render/ui;
       audio on `audio`. `client/decals.go` and `client/highlights.go` are the old GL
